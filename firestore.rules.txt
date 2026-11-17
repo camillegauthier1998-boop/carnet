@@ -1,0 +1,70 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function famPath(fid) { return /databases/$(database)/documents/families/$(fid); }
+    function memPath(fid, uid) { return /databases/$(database)/documents/families/$(fid)/members/$(uid); }
+    function isMember(fid) { return signedIn() && exists(memPath(fid, request.auth.uid)); }
+    function myRole(fid) { return get(memPath(fid, request.auth.uid)).data.role; }
+    function canEdit(fid) { return isMember(fid) && myRole(fid) in ['admin', 'editor']; }
+    function isAdmin(fid) { return isMember(fid) && myRole(fid) == 'admin'; }
+    function myEmail() { return request.auth.token.email.lower(); }
+    // Le créateur de la famille est administrateur permanent (valable aussi dans le lot d'écritures de création).
+    function ownerAfter(fid) { return signedIn() && getAfter(famPath(fid)).data.ownerUid == request.auth.uid; }
+    function validInvite(fid) {
+      let inv = get(/databases/$(database)/documents/invites/$(request.resource.data.code)).data;
+      return inv.fid == fid
+        && inv.email == myEmail()
+        && request.resource.data.email == inv.email
+        && request.resource.data.role == inv.role;
+    }
+
+    // Profil de connexion : chacun ne voit et ne modifie que le sien.
+    match /users/{uid} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+
+    // Invitations : on ne peut lire une invitation que si on connaît son code (aucune liste possible).
+    match /invites/{code} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn() && isAdmin(request.resource.data.fid);
+      allow update: if false;
+      allow delete: if signedIn() && (resource.data.email == myEmail() || isAdmin(resource.data.fid));
+    }
+
+    match /families/{fid} {
+      allow read: if isMember(fid);
+      allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid;
+      allow update: if canEdit(fid) && request.resource.data.ownerUid == resource.data.ownerUid;
+      allow delete: if isAdmin(fid);
+
+      match /members/{uid} {
+        allow read: if isMember(fid);
+        allow create: if signedIn() && uid == request.auth.uid && (
+          (ownerAfter(fid) && request.resource.data.role == 'admin' && request.resource.data.owner == true)
+          || validInvite(fid));
+        allow update: if signedIn() && (
+          (isAdmin(fid) && uid != request.auth.uid && resource.data.get('owner', false) == false
+            && request.resource.data.role in ['admin', 'editor', 'viewer']
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role']))
+          || (request.auth.uid == uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name'])));
+        allow delete: if signedIn() && resource.data.get('owner', false) == false
+          && (isAdmin(fid) || request.auth.uid == uid);
+      }
+
+      match /profiles/{pid} {
+        allow read: if isMember(fid);
+        allow create, update, delete: if canEdit(fid) || ownerAfter(fid);
+      }
+
+      match /invites/{code} {
+        allow read: if isAdmin(fid);
+        allow create, update: if isAdmin(fid);
+        allow delete: if isAdmin(fid) || (signedIn() && resource.data.email == myEmail());
+      }
+    }
+  }
+}
