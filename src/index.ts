@@ -5,6 +5,9 @@ import {
 import { applyPush, createFamily, familyRev, joinFamily, normEmail, renameUser, requireMember, snapshot, validEmail, validName, type PushBody } from './family';
 import { migrateFromFirebase, migrationEnabled } from './firebase';
 import { mailEnabled, resetEmail, sendMail } from './mail';
+import { buildCalendar } from './calendar';
+import { deliver, runReminders, subscriptionsOf, takePending, validEndpoint, vapidPublicKey } from './push';
+import { parisToday, type Profile } from './reminders';
 import { ApiError, type Env, type UserRow } from './types';
 
 /** En-têtes de sécurité des réponses de l'API (les fichiers statiques ont les leurs dans public/_headers). */
@@ -142,6 +145,47 @@ async function resetConfirm(req: Request, env: Env, ip: string): Promise<Respons
 
 // ---------- Routes réservées aux utilisateurs connectés ----------
 
+async function pushSubscribe(req: Request, env: Env, user: UserRow, url: URL): Promise<Response> {
+  const b = await readJson<{ endpoint?: unknown; keys?: { auth?: unknown; p256dh?: unknown } }>(req);
+  const auth = b.keys?.auth, p256dh = b.keys?.p256dh;
+  if (!validEndpoint(b.endpoint) || typeof auth !== 'string' || typeof p256dh !== 'string' || auth.length > 100 || p256dh.length > 200) {
+    return fail(400, 'donnees-invalides');
+  }
+  await env.DB.prepare(
+    `INSERT INTO push_subscriptions (endpoint, user_id, auth, p256dh, origin, created_at) VALUES (?, ?, ?, ?, ?, ?)
+     ON CONFLICT(endpoint) DO UPDATE SET user_id = excluded.user_id, auth = excluded.auth, p256dh = excluded.p256dh, origin = excluded.origin`,
+  ).bind(b.endpoint, user.id, auth, p256dh, url.origin, Date.now()).run();
+  return json({ ok: true });
+}
+
+/** Lien d'abonnement à l'agenda : créé à la demande, renouvelé sur demande (l'ancien cesse de fonctionner). */
+async function calendarLink(req: Request, env: Env, user: UserRow): Promise<Response> {
+  await requireMember(env, user);
+  const b = await readJson<{ renew?: unknown }>(req);
+  const cur = await env.DB.prepare('SELECT token FROM calendar_tokens WHERE user_id = ?').bind(user.id).first<{ token: string }>();
+  if (cur && b.renew !== true) return json({ token: cur.token });
+  const token = randomToken(24);
+  await env.DB.prepare('INSERT INTO calendar_tokens (token, user_id, created_at) VALUES (?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET token = excluded.token, created_at = excluded.created_at')
+    .bind(token, user.id, Date.now()).run();
+  return json({ token });
+}
+
+/** Flux iCalendar suivi par l'agenda du téléphone (adresse secrète, sans cookie). */
+async function calendarFeed(env: Env, token: string): Promise<Response> {
+  const notFound = () => new Response('Agenda introuvable', { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8', ...API_HEADERS } });
+  if (!/^[A-Za-z0-9_-]{20,64}$/.test(token)) return notFound();
+  const row = await env.DB.prepare(
+    `SELECT u.family_id fid, f.name FROM calendar_tokens t JOIN users u ON u.id = t.user_id
+     JOIN members m ON m.user_id = u.id AND m.family_id = u.family_id JOIN families f ON f.id = u.family_id WHERE t.token = ?`,
+  ).bind(token).first<{ fid: string; name: string }>();
+  if (!row) return notFound();
+  const rows = await env.DB.prepare('SELECT json FROM profiles WHERE family_id = ? ORDER BY ord').bind(row.fid).all<{ json: string }>();
+  const profiles = rows.results.map((r) => { try { return JSON.parse(r.json) as Profile; } catch { return null; } }).filter((p): p is Profile => !!p);
+  return new Response(buildCalendar(row.name, profiles, parisToday()), {
+    headers: { 'Content-Type': 'text/calendar; charset=utf-8', 'Cache-Control': 'private, max-age=900', ...API_HEADERS },
+  });
+}
+
 async function account(req: Request, env: Env, user: UserRow): Promise<Response> {
   const b = await readJson<{ name?: unknown; password?: unknown }>(req);
   if (b.name !== undefined) {
@@ -183,6 +227,16 @@ async function route(req: Request, env: Env, ctx: ExecutionContext, url: URL): P
   if (method === 'POST' && path === '/api/auth/logout') return json({ ok: true }, { headers: { 'Set-Cookie': clearCookieHeader() } });
   if (method === 'POST' && path === '/api/auth/reset-request') return resetRequest(req, env, ip, url, ctx);
   if (method === 'POST' && path === '/api/auth/reset') return resetConfirm(req, env, ip);
+  if (method === 'GET' && path === '/api/push/key') {
+    const key = vapidPublicKey(env);
+    return key ? json({ key }) : fail(503, 'notifications-indisponibles');
+  }
+  // Appelée par le service worker à la réception d'une notification (sans cookie : l'abonnement fait foi)
+  if (method === 'POST' && path === '/api/push/pending') {
+    const b = await readJson<{ endpoint?: unknown; auth?: unknown }>(req);
+    if (!validEndpoint(b.endpoint) || typeof b.auth !== 'string') return json({ messages: [] });
+    return json({ messages: await takePending(env, b.endpoint, b.auth) });
+  }
 
   const auth = await authenticate(req, env);
   if (!auth) return fail(401, 'non-connecte');
@@ -194,7 +248,24 @@ async function route(req: Request, env: Env, ctx: ExecutionContext, url: URL): P
   else if (method === 'POST' && path === '/api/family') {
     const fid = await createFamily(env, user, await readJson(req));
     res = json({ familyId: fid }, { status: 201 });
-  } else if (method === 'POST' && path === '/api/family/push') res = json({ rev: await applyPush(env, user, await readJson<PushBody>(req)) });
+  } else if (method === 'POST' && path === '/api/push/subscribe') res = await pushSubscribe(req, env, user, url);
+  else if (method === 'POST' && path === '/api/push/unsubscribe') {
+    const b = await readJson<{ endpoint?: unknown }>(req);
+    if (typeof b.endpoint === 'string') {
+      await env.DB.batch([
+        env.DB.prepare('DELETE FROM push_subscriptions WHERE endpoint = ? AND user_id = ?').bind(b.endpoint, user.id),
+        env.DB.prepare('DELETE FROM push_queue WHERE endpoint = ?').bind(b.endpoint),
+      ]);
+    }
+    res = json({ ok: true });
+  } else if (method === 'POST' && path === '/api/push/test') {
+    const b = await readJson<{ endpoint?: unknown }>(req);
+    const subs = (await subscriptionsOf(env, [user.id])).filter((s) => !b.endpoint || s.endpoint === b.endpoint);
+    if (!subs.length) return fail(404, 'pas-abonne');
+    const n = await deliver(env, subs, [{ title: 'Notifications activées', body: 'Les rappels de rendez-vous et d’échéances arriveront ici chaque matin.', tag: 'test' }]);
+    res = json({ devices: n });
+  } else if (method === 'POST' && path === '/api/calendar/link') res = await calendarLink(req, env, user);
+  else if (method === 'POST' && path === '/api/family/push') res = json({ rev: await applyPush(env, user, await readJson<PushBody>(req)) });
   else if (method === 'POST' && path === '/api/family/join') {
     const b = await readJson<{ code?: unknown }>(req);
     res = json({ familyId: await joinFamily(env, user, b.code) });
@@ -211,6 +282,10 @@ async function route(req: Request, env: Env, ctx: ExecutionContext, url: URL): P
 export default {
   async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(req.url);
+    const cal = url.pathname.match(/^\/cal\/([^/]+)\.ics$/);
+    if (cal && req.method === 'GET') {
+      try { return await calendarFeed(env, cal[1]); } catch (e) { console.error('Agenda', e); return fail(500, 'erreur-serveur'); }
+    }
     if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(req);
     try {
       return await route(req, env, ctx, url);
@@ -220,5 +295,9 @@ export default {
       console.error(req.method, url.pathname, e);
       return fail(500, 'erreur-serveur');
     }
+  },
+  /** Chaque matin : rappels de rendez-vous et d'échéances par notification */
+  async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(runReminders(env));
   },
 } satisfies ExportedHandler<Env>;

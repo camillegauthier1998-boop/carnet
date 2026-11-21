@@ -12,6 +12,9 @@ src/auth.ts           mots de passe (PBKDF2), cookie de session signé, limitati
 src/family.ts         lecture de l'espace, validation et droits des modifications, création, invitations
 src/firebase.ts       reprise des comptes et des données de l'ancienne version Firebase
 src/mail.ts           e-mail de réinitialisation du mot de passe (Resend, facultatif)
+src/reminders.ts      échéances et rappels (mêmes règles que l'interface), date du jour à Paris
+src/push.ts           notifications Web Push (VAPID) et envoi des rappels du matin
+src/calendar.ts       agenda à suivre depuis le téléphone (flux iCalendar)
 public/               interface (React + htm sans build), manifest, service worker, icônes
 public/app.js         application ; l'objet Cloud fait le lien avec l'API
 migrations/           schéma SQL
@@ -27,6 +30,26 @@ test/                 tests unitaires (vitest)
 - **Synchronisation** : l'appli envoie seulement ce qui a changé, 300 ms après une modification. Elle vérifie les changements des autres membres toutes les 20 secondes (une minute en arrière-plan), au retour sur l'appli et au retour du réseau. Une vérification sans changement ne renvoie qu'un numéro de version.
 - **Hors connexion** : l'appli s'ouvre avec la dernière copie reçue (gardée sur l'appareil). Les modifications attendent et partent au retour du réseau.
 - **Mode démonstration** : `/?demo`, avec des données d'exemple enregistrées sur l'appareil uniquement.
+- **Bouton retour** (Android, navigateur) : ferme la fenêtre ouverte (avec confirmation si une saisie est en cours), puis revient à l'écran précédent, puis à l'accueil, puis quitte l'appli.
+
+## Notifications
+
+Réglages → **Notifications sur ce téléphone**. Chaque matin à 5 h 30 UTC (6 h 30 l'hiver, 7 h 30 l'été à Paris), le serveur calcule les rappels de chaque espace et prévient les téléphones abonnés de ses membres :
+
+- **Rendez-vous à prendre** : à partir de la date de rappel du soin (par exemple 1 mois avant l'échéance), tant qu'aucun rendez-vous n'est noté.
+- **Échéance dépassée** : si elle date de moins d'une semaine.
+- **Rendez-vous à venir** : selon les rappels du rendez-vous (J-7, J-2…). Un rendez-vous noté tard ne donne qu'un message, le plus proche.
+
+Chaque rappel n'est envoyé qu'une fois (table `notif_sent`), et un matin manqué est rattrapé le lendemain. Au-delà de 3 rappels le même jour, un seul message les résume. Les rappels de prise des traitements restent affichés sur l'accueil, sans notification.
+
+- **iPhone** : iOS 16.4 ou plus récent, et le carnet doit être ajouté à l'écran d'accueil (Safari → Partager → « Sur l'écran d'accueil »), puis ouvert depuis son icône.
+- **Android** : Chrome, depuis le navigateur ou l'appli installée.
+- Fonctionnement : le serveur envoie une notification sans contenu, signée avec une clé VAPID (secret `VAPID_JWK`, créé par la CI à la première mise en ligne). Le service worker récupère alors le texte des messages (`POST /api/push/pending`, avec l'adresse et la clé `auth` de l'abonnement) et les affiche. Le serveur n'envoie de requêtes qu'aux services de notification des navigateurs (Google, Apple, Mozilla, Microsoft).
+- Tester l'envoi du matin en local : `npm run dev`, puis ouvrir `http://localhost:8787/cdn-cgi/handler/scheduled`.
+
+## Agenda du téléphone
+
+Agenda → **Agenda du téléphone** (ou Réglages). Chaque compte reçoit une adresse secrète `https://…/cal/<jeton>.ics`, à laquelle l'agenda de l'iPhone, de Google ou d'Outlook s'abonne. Elle contient les rendez-vous (avec leurs rappels J-7, J-2…), ceux faits dans les 6 derniers mois, et les échéances des soins sans rendez-vous (avec une alerte « prendre rendez-vous »). L'agenda se met à jour tout seul, en général en quelques heures (jusqu'à une journée pour Google). « Changer le lien » désactive l'ancien.
 
 ## Mise en ligne sur Cloudflare (une seule fois)
 

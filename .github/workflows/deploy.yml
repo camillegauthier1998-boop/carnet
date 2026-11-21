@@ -64,3 +64,13 @@ jobs:
           else
             openssl rand -base64 48 | tr -d '\n=' | npx wrangler secret put SESSION_SECRET
           fi
+      # Première mise en ligne des notifications : crée la clé VAPID (paire P-256, jamais affichée).
+      # Elle n'est jamais remplacée ensuite : la changer désabonnerait tous les téléphones.
+      - name: Clé des notifications
+        run: |
+          set -o pipefail
+          if grep -q '"VAPID_JWK"' secrets.json; then
+            echo "VAPID_JWK existe déjà."
+          else
+            node -e "crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign']).then(k=>crypto.subtle.exportKey('jwk',k.privateKey)).then(j=>process.stdout.write(JSON.stringify({kty:j.kty,crv:j.crv,x:j.x,y:j.y,d:j.d})))" | npx wrangler secret put VAPID_JWK
+          fi
