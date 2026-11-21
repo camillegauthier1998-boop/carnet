@@ -15,8 +15,7 @@
 		{
 			"binding": "DB",
 			"database_name": "carnet",
-			// À remplacer par l'identifiant affiché par « npx wrangler d1 create carnet » (voir README)
-			"database_id": "00000000-0000-0000-0000-000000000000"
+			"database_id": "7c4fba3e-f023-4c9d-b309-7d52d33e72cd"
 		}
 	],
 	"vars": {
