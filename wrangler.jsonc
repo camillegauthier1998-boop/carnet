@@ -1,0 +1,36 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "carnet",
+	"main": "src/index.ts",
+	"compatibility_date": "2025-09-01",
+	"assets": {
+		"directory": "./public",
+		"binding": "ASSETS",
+		"not_found_handling": "single-page-application",
+		"run_worker_first": [
+			"/api/*"
+		]
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "carnet",
+			// À remplacer par l'identifiant affiché par « npx wrangler d1 create carnet » (voir README)
+			"database_id": "00000000-0000-0000-0000-000000000000"
+		}
+	],
+	"vars": {
+		// Itérations PBKDF2 du hachage des mots de passe (100 000 maximum sur Workers).
+		// Les anciens hachages gardent leur valeur et sont recalculés à la connexion suivante.
+		"PBKDF2_ITERATIONS": "100000",
+		// Reprise des comptes et des données de l'ancienne version Firebase (voir README, « Migration depuis Firebase »).
+		// Ces valeurs ne sont pas secrètes. Les vider une fois tout le monde passé sur la nouvelle version.
+		"FIREBASE_API_KEY": "AIzaSyDDHBj_dsogFbzaYWXF4pIGBMbZi5jAB3Q",
+		"FIREBASE_PROJECT_ID": "carnet-famille-58477",
+		// Expéditeur des e-mails de réinitialisation (avec le secret RESEND_API_KEY)
+		"MAIL_FROM": ""
+	},
+	"observability": {
+		"enabled": true
+	}
+}

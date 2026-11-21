@@ -1,282 +1,3 @@
-<!doctype html>
-<html lang="fr"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Carnet de santé familial</title>
-<meta name="theme-color" content="#3E7C7E">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Carnet">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="icon" type="image/png" href="icon-192.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
-<style>
-/* Layout: colonne mobile centrée, contenu défilant, barre de navigation flottante en bas. */
-:root{
-  --bg:#F1F5F4; --card:#FFFFFF; --nav:#FFFFFF; --page:#E7ECEB;
-  --primary:#3E7C7E; --secondary:#EBC27A; --onp:#FFFFFF;
-  --ink:#1F2B2A; --ink2:#566766; --line:#E2E8E7;
-  --psoft:#E3EEEE; --pink:#2F6769; --ssoft:#F9EFD9; --sink:#6B4E12;
-  --good:#2C7550; --goodbg:#E3F1E9; --warn:#855A10; --warnbg:#F9ECD2;
-  --bad:#A8403A; --badbg:#F7E2DF; --info:#3A6A9B; --infobg:#E2ECF6;
-  --shadow:rgba(30,50,50,.10); --hi:rgba(255,255,255,.85);
-  --font-d:"Nunito",ui-rounded,"SF Pro Rounded",system-ui,sans-serif;
-  --font-b:"Nunito Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
-  --emoji:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:#13191C; --card:#1D2529; --nav:#192125; --page:#0D1113;
-    --primary:#7FB4C4; --secondary:#E0B67A; --onp:#14201F;
-    --ink:#EEF3F3; --ink2:#A9B8BA; --line:#2B363A;
-    --psoft:#243138; --pink:#8CC0CF; --ssoft:#33302A; --sink:#E8C98F;
-    --good:#7CC59A; --goodbg:#22332B; --warn:#E3B56A; --warnbg:#38301F;
-    --bad:#EE958E; --badbg:#3B2624; --info:#8DB6E0; --infobg:#232F3C;
-    --shadow:rgba(0,0,0,.4); --hi:rgba(255,255,255,.07);
-    color-scheme:dark;
-  }
-}
-:root[data-theme="dark"]{
-  --bg:#13191C; --card:#1D2529; --nav:#192125; --page:#0D1113;
-  --primary:#7FB4C4; --secondary:#E0B67A; --onp:#14201F;
-  --ink:#EEF3F3; --ink2:#A9B8BA; --line:#2B363A;
-  --psoft:#243138; --pink:#8CC0CF; --ssoft:#33302A; --sink:#E8C98F;
-  --good:#7CC59A; --goodbg:#22332B; --warn:#E3B56A; --warnbg:#38301F;
-  --bad:#EE958E; --badbg:#3B2624; --info:#8DB6E0; --infobg:#232F3C;
-  --shadow:rgba(0,0,0,.4); --hi:rgba(255,255,255,.07);
-  color-scheme:dark;
-}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%}
-body{margin:0;background:var(--page);color:var(--ink);font:15px/1.42 var(--font-b);
-  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-#root{height:100%}
-@media (max-width:519px){body{background:var(--bg)}}
-button,input,select,textarea{font:inherit;color:inherit}
-button{cursor:pointer}
-h1,h2,h3,p{margin:0}
-.phone{--pad:0px;position:relative;height:100%;max-width:430px;margin:0 auto;display:flex;flex-direction:column;background:var(--bg);overflow:hidden}
-@media (min-width:520px){.phone{--pad:18px;height:calc(100% - 32px);margin-block:16px;border-radius:36px;box-shadow:0 0 0 1px var(--line),0 24px 60px -24px var(--shadow)}}
-.screen{flex:1;min-height:0;display:flex;flex-direction:column}
-.scroll{flex:1;min-height:0;overflow-y:auto;padding:6px var(--pad) 28px;display:flex;flex-direction:column;gap:20px}
-.scroll.pb{padding-bottom:96px}
-.top{display:flex;align-items:center;gap:10px;padding:14px var(--pad) 10px;min-height:64px}
-.top .tt{flex:1;min-width:0}
-.top h1{font:800 22px/1.15 var(--font-d);text-wrap:balance;overflow-wrap:anywhere}
-.top p{color:var(--ink2);font-size:13px;margin-top:2px}
-.top .tr{display:flex;gap:8px;align-items:center}
-.iconbtn{width:40px;height:40px;border-radius:14px;border:0;background:var(--card);box-shadow:0 1px 2px var(--shadow);font:700 22px/1 var(--font-d);color:var(--ink);display:grid;place-items:center;flex:none}
-.iconbtn:focus-visible,.btn:focus-visible,.row:focus-visible,.tile:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.sw:focus-visible,.navb:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
-.sec{display:flex;flex-direction:column;gap:10px}
-.sech{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
-.sech h2{font:800 15px var(--font-d);letter-spacing:.02em;color:var(--ink)}
-.link{border:0;background:none;color:var(--pink);font:700 13px var(--font-d);padding:4px 0}
-.card{background:var(--card);border-radius:20px;box-shadow:0 1px 2px var(--shadow);overflow:hidden}
-.card.pad{padding:14px}
-.card>.row+.row,.card>.sub+.row,.card>.row+.sub{border-top:1px solid var(--line)}
-.row{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border:0;background:none;text-align:left;min-width:0}
-.row .grow{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
-.row b{font:700 15px var(--font-d);overflow-wrap:anywhere}
-.row small,.muted{color:var(--ink2);font-size:13px;overflow-wrap:anywhere}
-.row .go{color:var(--ink2);font:700 20px var(--font-d)}
-.ico{display:inline-grid;place-items:center;flex:none;width:42px;height:42px;border-radius:14px;font-size:22px;font-family:var(--emoji);line-height:1;background:var(--psoft);
-  box-shadow:inset 0 1px 0 var(--hi),inset 0 -2px 3px rgba(0,0,0,.05),0 1px 2px var(--shadow),0 5px 8px -5px var(--shadow)}
-.ico.s{background:var(--ssoft)}.ico.w{background:var(--warnbg)}.ico.b{background:var(--badbg)}.ico.i{background:var(--infobg)}.ico.g{background:var(--goodbg)}
-.chip{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;font:700 12px var(--font-d);white-space:nowrap;flex:none}
-.chip.ok{background:var(--goodbg);color:var(--good)}.chip.warn{background:var(--warnbg);color:var(--warn)}.chip.bad{background:var(--badbg);color:var(--bad)}
-.chip.info{background:var(--infobg);color:var(--info)}.chip.mute{background:var(--psoft);color:var(--ink2)}.chip.pri{background:var(--psoft);color:var(--pink)}
-.chips{display:flex;gap:6px;flex-wrap:wrap}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:12px 18px;border-radius:14px;border:0;background:var(--primary);color:var(--onp);font:800 15px var(--font-d);min-height:44px}
-.btn.soft{background:var(--psoft);color:var(--pink)}
-.btn.ghost{background:none;color:var(--pink);box-shadow:inset 0 0 0 1.5px var(--line)}
-.btn.danger{background:var(--badbg);color:var(--bad)}
-.btn.sm{padding:7px 12px;min-height:34px;font-size:13px;border-radius:11px}
-.btn.block{width:100%}
-.btn[disabled]{opacity:.5}
-.btns{display:flex;gap:8px;flex-wrap:wrap}
-.fab{position:absolute;right:calc(var(--pad) + 4px);bottom:92px;z-index:5;box-shadow:0 8px 18px -6px var(--shadow),0 2px 4px var(--shadow);border-radius:18px;padding:13px 18px}
-.nav{display:flex;gap:4px;margin:6px var(--pad) 10px;padding:6px;background:var(--nav);border-radius:24px;box-shadow:0 6px 20px -8px var(--shadow),0 1px 3px var(--shadow)}
-.navb{flex:1;min-width:0;border:0;background:none;border-radius:18px;padding:7px 2px;display:flex;flex-direction:column;align-items:center;gap:1px;color:var(--ink2);font:700 11px var(--font-d)}
-.navb span{font:22px/1.1 var(--emoji)}
-.navb.on{background:var(--psoft);color:var(--pink)}
-.fld{display:flex;flex-direction:column;gap:5px;min-width:0}
-.fld>span,.lbl{font:700 12px var(--font-d);color:var(--ink2);letter-spacing:.03em;text-transform:uppercase}
-.fld em{font-style:normal;font-size:12px;color:var(--ink2)}
-input[type=text],input[type=email],input[type=password],input[type=date],input[type=time],input[type=number],select,textarea{width:100%;min-width:0;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:16px}
-textarea{min-height:72px;resize:vertical}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.form{display:flex;flex-direction:column;gap:14px}
-.inl{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.inl input.num{width:76px}.inl select{width:auto;flex:1;min-width:110px}
-.swrow{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.sw{width:50px;height:30px;border-radius:99px;border:0;background:var(--line);position:relative;flex:none;padding:0;transition:background .15s}
-.sw i{position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .15s}
-.sw.on{background:var(--primary)}.sw.on i{transform:translateX(20px)}
-.seg{display:flex;background:var(--psoft);border-radius:13px;padding:3px;gap:3px}
-.seg button{flex:1;border:0;background:none;border-radius:10px;padding:8px 6px;font:700 13px var(--font-d);color:var(--ink2)}
-.seg button.on{background:var(--card);color:var(--pink);box-shadow:0 1px 2px var(--shadow)}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px}
-.tile{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;border-radius:16px;border:1.5px solid transparent;background:var(--card);box-shadow:0 1px 2px var(--shadow);font:700 12px var(--font-d);text-align:center}
-.tile.on{border-color:var(--primary);background:var(--psoft);color:var(--pink)}
-.av{position:relative;display:grid;place-items:center;border-radius:50%;object-fit:cover;flex:none;font-family:var(--emoji);box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 1px 2px var(--shadow),0 5px 8px -5px var(--shadow)}
-.avw{position:relative;display:inline-block;flex:none;line-height:0}
-.acc{position:absolute;right:-4px;bottom:-2px;font:16px/1 var(--emoji);background:var(--card);border-radius:50%;width:24px;height:24px;display:grid;place-items:center;box-shadow:0 1px 2px var(--shadow)}
-.pcards{display:flex;gap:10px;overflow-x:auto;padding:2px 2px 8px;margin:0 -2px;scroll-snap-type:x proximity}
-.pcard{scroll-snap-align:start;flex:none;width:100px;display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 6px 10px;border:0;border-radius:20px;background:var(--card);box-shadow:0 1px 2px var(--shadow);font:700 14px var(--font-d);text-align:center}
-.pcard small{font:600 11px var(--font-b);color:var(--ink2);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pcard.add{background:none;box-shadow:inset 0 0 0 1.5px var(--line);color:var(--pink);justify-content:center}
-.dateblk{width:46px;height:50px;border-radius:14px;background:var(--psoft);color:var(--pink);display:flex;flex-direction:column;align-items:center;justify-content:center;flex:none;font-family:var(--font-d);line-height:1.05}
-.dateblk b{font-size:19px}.dateblk span{font-size:11px;font-weight:700;text-transform:uppercase}
-.hero{display:flex;align-items:center;gap:14px}
-.hero h1{font:800 26px/1.1 var(--font-d);overflow-wrap:anywhere}
-.big{display:flex;align-items:center;gap:14px;width:100%;padding:16px;border:0;border-radius:22px;background:var(--primary);color:var(--onp);text-align:left;box-shadow:0 10px 22px -12px var(--shadow)}
-.big .ico{background:rgba(255,255,255,.2);box-shadow:inset 0 1px 0 rgba(255,255,255,.35)}
-.big b{font:800 18px var(--font-d);display:block}.big small{opacity:.92;font-size:13px}
-.big .go{margin-left:auto;font:700 24px var(--font-d)}
-.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14px}
-.kv dt{color:var(--ink2)}.kv dd{margin:0;font-weight:600;overflow-wrap:anywhere}
-.shbg{position:absolute;inset:0;z-index:30;background:rgba(10,20,20,.42);display:flex;align-items:flex-end}
-.sheet{width:100%;max-height:90%;overflow-y:auto;background:var(--card);border-radius:26px 26px 0 0;padding:10px 18px 24px;display:flex;flex-direction:column;gap:14px;animation:up .22s ease-out}
-.sheet .grab{width:40px;height:5px;border-radius:9px;background:var(--line);margin:0 auto}
-.sht{font:800 19px var(--font-d)}
-@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
-.toast{position:absolute;left:var(--pad);right:var(--pad);bottom:96px;z-index:40;background:var(--ink);color:var(--bg);padding:12px 16px;border-radius:16px;font:700 14px var(--font-d);box-shadow:0 10px 24px -10px var(--shadow);animation:up .2s ease-out}
-.banner{margin:8px var(--pad) 0;padding:9px 12px;border-radius:14px;background:var(--ssoft);color:var(--sink);font:700 13px var(--font-d);display:flex;align-items:center;gap:10px;justify-content:space-between}
-.empty{padding:22px 16px;text-align:center;color:var(--ink2);display:flex;flex-direction:column;align-items:center;gap:8px}
-.empty .ico{width:52px;height:52px;font-size:26px}
-.note{font-size:13px;color:var(--ink2);padding:10px 12px;border-radius:14px;background:var(--psoft)}
-.rem{display:flex;flex-direction:column;gap:10px;padding:14px}
-.rem .top2{display:flex;gap:12px;align-items:flex-start}
-.rem .tx{flex:1;min-width:0}
-.rem b{font:700 15px var(--font-d);display:block;overflow-wrap:anywhere}
-.tl{display:flex;flex-direction:column}
-.chart{width:100%;height:auto;display:block}
-.chart .gl{stroke:var(--line);stroke-width:1}
-.chart .tx{fill:var(--ink2);font:600 11px var(--font-d)}
-.chart .ln{stroke:var(--primary);stroke-width:3;fill:none;stroke-linejoin:round;stroke-linecap:round}
-.chart .ar{fill:var(--primary);opacity:.12}
-.chart .pt{fill:var(--card);stroke:var(--primary);stroke-width:2.5}
-.chart .pt.last{fill:var(--primary)}
-.chart .hl{fill:var(--primary);opacity:.18}
-.swatches{display:flex;gap:6px}
-.swatches i{width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
-.pal{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border-radius:18px;border:1.5px solid transparent;background:var(--card);box-shadow:0 1px 2px var(--shadow);text-align:left}
-.pal.on{border-color:var(--primary)}
-.colors{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.colors label{display:flex;align-items:center;gap:10px;font:700 13px var(--font-d)}
-.colors input{width:44px;height:36px;border:0;padding:0;background:none;border-radius:10px;flex:none}
-pre.ics{margin:0;padding:12px;border-radius:14px;background:var(--bg);font:12px/1.5 ui-monospace,Menlo,monospace;overflow-x:auto;white-space:pre;color:var(--ink)}
-hr{border:0;border-top:1px solid var(--line);margin:0}
-.logo{width:76px;height:76px;font-size:38px;border-radius:26px}
-
-.ico{color:var(--pink)}
-.ico.s{color:var(--sink)}.ico.w{color:var(--warn)}.ico.b{color:var(--bad)}.ico.i{color:var(--info)}.ico.g{color:var(--good)}
-.ico.fa svg,.navb svg,.iconbtn svg,.btn svg,.pcard svg{width:1em;height:1em;display:block;overflow:visible}
-.ico.fa svg{filter:drop-shadow(0 1px 0 var(--hi)) drop-shadow(0 2px 1.5px rgba(0,0,0,.14))}
-.ico.fa i,.navb i,.iconbtn i,.btn i{display:inline-grid;place-items:center;line-height:1}
-.big .ico{color:var(--onp)}
-.iconbtn svg{width:19px;height:19px}
-.navb>span{display:grid;place-items:center;font-size:21px;height:24px}
-.navb.on svg{filter:drop-shadow(0 1px 0 var(--hi))}
-.pcw{position:relative;line-height:0}
-.dot{position:absolute;top:-2px;right:-2px;width:14px;height:14px;border-radius:50%;border:2.5px solid var(--card);background:var(--warn)}
-.dot.bad{background:var(--bad)}
-.row.act{cursor:pointer}
-.row .btn.sm{flex:none}
-.mini{display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:22px;background:var(--bg);color:var(--ink);border:1px solid var(--line)}
-.mini .mt{font:800 17px var(--font-d)}
-.mini .mc{background:var(--card);border-radius:16px;padding:10px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 1px 2px var(--shadow)}
-.mini .mn{display:flex;justify-content:space-around;background:var(--nav);border-radius:18px;padding:8px;box-shadow:0 1px 3px var(--shadow)}
-.mini .mn span{display:grid;place-items:center;width:34px;height:30px;border-radius:12px;color:var(--ink2);font-size:16px}
-.mini .mn span.on{background:var(--psoft);color:var(--pink)}
-.mini .mn svg{width:1em;height:1em}
-.pg{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:10px;border-radius:16px;border:1.5px solid transparent;background:var(--card);box-shadow:0 1px 2px var(--shadow);text-align:left;font:700 13px var(--font-d);min-width:0}
-.pg.on{border-color:var(--primary);background:var(--psoft)}
-.pg small{font:600 11px var(--font-b);color:var(--ink2)}
-.pgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
-.stick{position:sticky;top:0;z-index:3;background:var(--bg);padding-bottom:6px}
-
-.fa-svg{width:1em;height:1em;display:block;overflow:visible}
-.chip svg{width:.95em;height:.95em}
-.go svg{width:13px;height:13px}
-.btn svg{width:1em;height:1em}
-.fgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-.fcard{display:flex;flex-direction:column;align-items:center;gap:4px;padding:16px 10px 14px;border:0;border-radius:22px;background:var(--card);box-shadow:0 1px 2px var(--shadow);text-align:center;min-width:0}
-.fcard b{font:800 17px var(--font-d);margin-top:6px;overflow-wrap:anywhere}
-.fcard small{font-size:12.5px;color:var(--ink2);margin-bottom:4px;overflow-wrap:anywhere}
-.fcard .chips{justify-content:center}
-.fcard.add{background:none;box-shadow:inset 0 0 0 1.5px var(--line);color:var(--pink);justify-content:center}
-
-/* Les cartes ne se compressent jamais dans une zone défilante */
-.scroll>*,.sheet>*{flex-shrink:0}
-.top,.nav,.banner{flex:none}
-.kv{margin:0}
-.two{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
-input[type=date],input[type=time]{-webkit-appearance:none;appearance:none;min-height:46px;max-width:100%;text-align:left}
-input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and-time-value{text-align:left}
-.scs{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:10px}
-.sc{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 6px;border:0;border-radius:18px;background:var(--card);box-shadow:0 1px 2px var(--shadow);font:700 13px var(--font-d);text-align:center;min-width:0}
-.sc small{font:600 11.5px var(--font-b);color:var(--ink2);overflow-wrap:anywhere}
-.skin{width:40px;height:40px;border-radius:50%;border:3px solid transparent;box-shadow:inset 0 0 0 1px rgba(0,0,0,.14);padding:0}
-.skin.on{border-color:var(--primary)}
-.emo{font:30px/1 var(--emoji);padding:8px;border-radius:14px;border:1.5px solid transparent;background:var(--bg);min-width:50px}
-.emo.on{border-color:var(--primary);background:var(--psoft)}
-.emo[disabled]{opacity:.35}
-.bgs{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.bgs button{width:36px;height:36px;border-radius:50%;border:3px solid transparent;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12);padding:0}
-.bgs button.on{border-color:var(--primary)}
-.bgs input[type=color]{width:40px;height:36px;border:0;padding:0;background:none;flex:none}
-.avhead{display:flex;align-items:center;gap:14px}
-
-/* Couleur douce par type de soin */
-.ico.t{background:color-mix(in srgb,var(--tint) 24%,var(--card));color:color-mix(in srgb,var(--tint) 72%,var(--ink))}
-/* Bouton Fait */
-.donebtn{flex:none;width:40px;height:40px;border-radius:14px;border:0;background:var(--goodbg);color:var(--good);display:grid;place-items:center;font-size:17px;padding:0}
-.donebtn svg{width:1em;height:1em}
-.row.rr{flex-wrap:wrap;row-gap:8px}.row.rr .grow{flex:1 1 150px}
-.row.flash{animation:flash 1.4s ease-out}
-@keyframes flash{0%{background:var(--goodbg)}100%{background:transparent}}
-/* Animations douces */
-.screen{animation:scrIn .24s ease-out}
-@keyframes scrIn{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
-.shbg{animation:fade .2s ease-out}
-@keyframes fade{from{opacity:0}to{opacity:1}}
-.btn,.row.act,.fcard,.sc,.tile,.pg,.donebtn,.iconbtn{transition:transform .12s ease,background-color .15s}
-.btn:active,.fcard:active,.sc:active,.donebtn:active,.iconbtn:active{transform:scale(.96)}
-.row.act:active{background:var(--psoft)}
-.toast{display:flex;align-items:center;gap:10px}
-.toast .ti{display:grid;place-items:center;font-size:18px;color:var(--good);flex:none}
-.toast .ti svg{width:1em;height:1em}
-.toast .tx{flex:1;min-width:0}
-.toast button{flex:none;border:0;background:rgba(127,127,127,.28);color:inherit;font:800 13px var(--font-d);padding:7px 12px;border-radius:10px}
-/* Guide de démarrage */
-.ob{position:absolute;inset:0;z-index:60;background:var(--bg);display:flex;flex-direction:column;padding:18px var(--pad) 20px;animation:fade .25s ease-out}
-.ob .skip{align-self:flex-end;border:0;background:none;color:var(--ink2);font:700 14px var(--font-d);padding:8px 4px}
-.ob-body{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;justify-content:center;gap:22px;padding:6px 4px;animation:scrIn .3s ease-out}
-.ob-body h2{font:800 26px/1.15 var(--font-d);text-wrap:balance}
-.ob-body p{color:var(--ink2);font-size:15.5px;line-height:1.5}
-.ob-art{display:flex;gap:14px;justify-content:center;align-items:center;padding:22px 10px;border-radius:26px;background:var(--psoft)}
-.ob-art.col{flex-direction:column;align-items:stretch;gap:12px}
-.ob-step{display:flex;gap:12px;align-items:center;background:var(--card);border-radius:18px;padding:10px 12px;box-shadow:0 1px 2px var(--shadow)}
-.ob-step div{display:flex;flex-direction:column;min-width:0}
-.ob-dots{display:flex;gap:8px;justify-content:center;margin:14px 0}
-.ob-dots i{width:8px;height:8px;border-radius:9px;background:var(--line);transition:width .2s,background .2s}
-.ob-dots i.on{width:24px;background:var(--primary)}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-</style>
-<body>
-<div id="root"></div>
-<script src="react.bundle.js"></script>
-<script src="htm.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js"></script>
-<script>
 /*UTILS-START*/
 const pad=n=>String(n).padStart(2,'0');
 const toISO=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
@@ -544,137 +265,178 @@ function icsFor(a,p,title){
 /* Icônes : Font Awesome Free (licence CC BY 4.0, fontawesome.com), intégrées en SVG */
 const FAI={"stethoscope":["0 0 576 512","M32 48C32 21.5 53.5 0 80 0l48 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-32 0 0 128c0 53 43 96 96 96s96-43 96-96l0-128-32 0c-17.7 0-32-14.3-32-32S238.3 0 256 0l48 0c26.5 0 48 21.5 48 48l0 144c0 77.4-55 142-128 156.8l0 19.2c0 61.9 50.1 112 112 112s112-50.1 112-112l0-85.5c-37.3-13.2-64-48.7-64-90.5 0-53 43-96 96-96s96 43 96 96c0 41.8-26.7 77.4-64 90.5l0 85.5c0 97.2-78.8 176-176 176S160 465.2 160 368l0-19.2C87 334 32 269.4 32 192L32 48zM480 224a32 32 0 1 0 0-64 32 32 0 1 0 0 64z"],"venus":["0 0 384 512","M80 176a112 112 0 1 1 224 0 112 112 0 1 1 -224 0zM223.9 349.1C305.9 334.1 368 262.3 368 176 368 78.8 289.2 0 192 0S16 78.8 16 176c0 86.3 62.1 158.1 144.1 173.1-.1 1-.1 1.9-.1 2.9l0 64-32 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l32 0 0 32c0 17.7 14.3 32 32 32s32-14.3 32-32l0-32 32 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-32 0 0-64c0-1 0-1.9-.1-2.9z"],"tooth":["0 0 448 512","M145 5.7L224 32 303 5.7C314.3 1.9 326 0 337.9 0 398.7 0 448 49.3 448 110.1l0 68.5c0 29.4-9.5 58.1-27.2 81.6l-1.1 1.5c-12.9 17.2-21.3 37.4-24.3 58.7L373.7 471.9c-3.3 23-23 40.1-46.2 40.1-22.8 0-42.3-16.5-46-39L261.3 351.6c-3-18.2-18.8-31.6-37.3-31.6s-34.2 13.4-37.3 31.6L166.5 473c-3.8 22.5-23.2 39-46 39-23.2 0-42.9-17.1-46.2-40.1L52.6 320.5c-3-21.3-11.4-41.5-24.3-58.7l-1.1-1.5C9.5 236.7 0 208.1 0 178.7l0-68.5C0 49.3 49.3 0 110.1 0 122 0 133.7 1.9 145 5.7z"],"eye":["0 0 576 512","M288 32c-80.8 0-145.5 36.8-192.6 80.6-46.8 43.5-78.1 95.4-93 131.1-3.3 7.9-3.3 16.7 0 24.6 14.9 35.7 46.2 87.7 93 131.1 47.1 43.7 111.8 80.6 192.6 80.6s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1 3.3-7.9 3.3-16.7 0-24.6-14.9-35.7-46.2-87.7-93-131.1-47.1-43.7-111.8-80.6-192.6-80.6zM144 256a144 144 0 1 1 288 0 144 144 0 1 1 -288 0zm144-64c0 35.3-28.7 64-64 64-11.5 0-22.3-3-31.7-8.4-1 10.9-.1 22.1 2.9 33.2 13.7 51.2 66.4 81.6 117.6 67.9s81.6-66.4 67.9-117.6c-12.2-45.7-55.5-74.8-101.1-70.8 5.3 9.3 8.4 20.1 8.4 31.7z"],"glasses":["0 0 576 512","M143.3 96c-14 0-26.5 9.2-30.6 22.6L70.4 256 224 256c17.7 0 32 14.3 32 32l64 0c0-17.7 14.3-32 32-32l153.6 0-42.3-137.4C459.2 105.2 446.8 96 432.7 96L400 96c-17.7 0-32-14.3-32-32s14.3-32 32-32l32.7 0c42.1 0 79.4 27.5 91.8 67.8l45.4 147.5c4.1 13.2 6.1 26.9 6.1 40.7l0 96c0 53-43 96-96 96l-64 0c-53 0-96-43-96-96l0-32-64 0 0 32c0 53-43 96-96 96l-64 0c-53 0-96-43-96-96l0-96c0-13.8 2.1-27.5 6.1-40.7L51.5 99.8C63.9 59.5 101.1 32 143.3 32L176 32c17.7 0 32 14.3 32 32s-14.3 32-32 32l-32.7 0zM64 320l0 64c0 17.7 14.3 32 32 32l64 0c17.7 0 32-14.3 32-32l0-64-128 0zm416 96c17.7 0 32-14.3 32-32l0-64-128 0 0 64c0 17.7 14.3 32 32 32l64 0z"],"hand-holding-medical":["0 0 576 512","M240 24c0-13.3 10.7-24 24-24l48 0c13.3 0 24 10.7 24 24l0 56 56 0c13.3 0 24 10.7 24 24l0 48c0 13.3-10.7 24-24 24l-56 0 0 56c0 13.3-10.7 24-24 24l-48 0c-13.3 0-24-10.7-24-24l0-56-56 0c-13.3 0-24-10.7-24-24l0-48c0-13.3 10.7-24 24-24l56 0 0-56zM66.7 384l42.5-42.5c24-24 56.6-37.5 90.5-37.5L352 304c17.7 0 32 14.3 32 32s-14.3 32-32 32l-72 0c-13.3 0-24 10.7-24 24s10.7 24 24 24l112.6 0 119.7-88.2c17.8-13.1 42.8-9.3 55.9 8.5s9.3 42.8-8.5 55.9L433.1 485.5c-23.4 17.2-51.6 26.5-80.7 26.5L32 512c-17.7 0-32-14.3-32-32l0-64c0-17.7 14.3-32 32-32l34.7 0z"],"droplet":["0 0 384 512","M192 512C86 512 0 426 0 320 0 228.8 130.2 45.9 166.6-3.5 172.5-11.5 181.8-16 191.8-16l.4 0c10 0 19.3 4.5 25.2 12.5 36.4 49.4 166.6 232.3 166.6 323.5 0 106-86 192-192 192zM112 312c0-13.3-10.7-24-24-24s-24 10.7-24 24c0 75.1 60.9 136 136 136 13.3 0 24-10.7 24-24s-10.7-24-24-24c-48.6 0-88-39.4-88-88z"],"syringe":["0 0 576 512","M497.5-17c-9.4-9.4-24.6-9.4-33.9 0s-9.4 24.6 0 33.9l15 15-46.1 46.1-63-63c-9.4-9.4-24.6-9.4-33.9 0s-9.4 24.6 0 33.9l7 7-78.1 78.1 41 41c9.4 9.4 9.4 24.6 0 33.9s-24.6 9.4-33.9 0l-41-41-46.1 46.1 41 41c9.4 9.4 9.4 24.6 0 33.9s-24.6 9.4-33.9 0l-41-41-37.7 37.7c-10.5 10.5-16.4 24.7-16.4 39.6l0 88.8-57 57c-9.4 9.4-9.4 24.6 0 33.9s24.6 9.4 33.9 0l57-57 88.8 0c14.9 0 29.1-5.9 39.6-16.4l229.7-229.7 7 7c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-63-63 46.1-46.1 15 15c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-64-64z"],"paw":["0 0 512 512","M234.5 92.9c14.3 42.9-.3 86.2-32.6 96.8s-70.1-15.6-84.4-58.5 .3-86.2 32.6-96.8 70.1 15.6 84.4 58.5zM100.4 198.6c18.9 32.4 14.3 70.1-10.2 84.1s-59.7-.9-78.5-33.3-14.3-70.1 10.2-84.1 59.7 .9 78.5 33.3zM69.2 401.2C121.6 259.9 214.7 224 256 224s134.4 35.9 186.8 177.2c3.6 9.7 5.2 20.1 5.2 30.5l0 1.6c0 25.8-20.9 46.7-46.7 46.7-11.5 0-22.9-1.4-34-4.2l-88-22c-15.3-3.8-31.3-3.8-46.6 0l-88 22c-11.1 2.8-22.5 4.2-34 4.2-25.8 0-46.7-20.9-46.7-46.7l0-1.6c0-10.4 1.6-20.8 5.2-30.5zM421.8 282.7c-24.5-14-29.1-51.7-10.2-84.1s54-47.3 78.5-33.3 29.1 51.7 10.2 84.1-54 47.3-78.5 33.3zM310.1 189.7c-32.3-10.6-46.9-53.9-32.6-96.8s52.1-69.1 84.4-58.5 46.9 53.9 32.6 96.8-52.1 69.1-84.4 58.5z"],"worm":["0 0 448 512","M224 96c0-53 43-96 96-96l38.4 0C407.9 0 448 40.1 448 89.6L448 376c0 75.1-60.9 136-136 136S176 451.1 176 376l0-80c0-22.1-17.9-40-40-40s-40 17.9-40 40l0 168c0 26.5-21.5 48-48 48S0 490.5 0 464L0 296c0-75.1 60.9-136 136-136s136 60.9 136 136l0 80c0 22.1 17.9 40 40 40s40-17.9 40-40l0-184-32 0c-53 0-96-43-96-96zm144-8a24 24 0 1 0 -48 0 24 24 0 1 0 48 0z"],"shield-halved":["0 0 512 512","M256 0c4.6 0 9.2 1 13.4 2.9L457.8 82.8c22 9.3 38.4 31 38.3 57.2-.5 99.2-41.3 280.7-213.6 363.2-16.7 8-36.1 8-52.8 0-172.4-82.5-213.1-264-213.6-363.2-.1-26.2 16.3-47.9 38.3-57.2L242.7 2.9C246.9 1 251.4 0 256 0zm0 66.8l0 378.1c138-66.8 175.1-214.8 176-303.4l-176-74.6 0 0z"],"horse":["0 0 576 512","M448 238.1l0-78.1 16 0 9.8 19.6c12.5 25.1 42.2 36.4 68.3 26 20.5-8.2 33.9-28 33.9-50.1L576 80c0-19.1-8.4-36.3-21.7-48l5.7 0c8.8 0 16-7.2 16-16S568.8 0 560 0L448 0C377.3 0 320 57.3 320 128l-171.2 0C118.1 128 91.2 144.3 76.3 168.8 33.2 174.5 0 211.4 0 256l0 56c0 13.3 10.7 24 24 24s24-10.7 24-24l0-56c0-13.4 6.6-25.2 16.7-32.5 1.6 13 6.3 25.4 13.6 36.4l28.2 42.4c8.3 12.4 6.4 28.7-1.2 41.6-16.5 28-20.6 62.2-10 93.9l17.5 52.4c4.4 13.1 16.6 21.9 30.4 21.9l33.7 0c21.8 0 37.3-21.4 30.4-42.1l-20.8-62.5c-2.1-6.4-.5-13.4 4.3-18.2l12.7-12.7c13.2-13.2 20.6-31.1 20.6-49.7 0-2.3-.1-4.6-.3-6.9l84 24c4.1 1.2 8.2 2.1 12.3 2.8L320 480c0 17.7 14.3 32 32 32l32 0c17.7 0 32-14.3 32-32l0-164.3c19.2-19.2 31.5-45.7 32-75.7l0 0 0-1.9zM496 64a16 16 0 1 1 0 32 16 16 0 1 1 0-32z"],"wand-magic-sparkles":["0 0 576 512","M263.4-27L278.2 9.8 315 24.6c3 1.2 5 4.2 5 7.4s-2 6.2-5 7.4L278.2 54.2 263.4 91c-1.2 3-4.2 5-7.4 5s-6.2-2-7.4-5L233.8 54.2 197 39.4c-3-1.2-5-4.2-5-7.4s2-6.2 5-7.4L233.8 9.8 248.6-27c1.2-3 4.2-5 7.4-5s6.2 2 7.4 5zM110.7 41.7l21.5 50.1 50.1 21.5c5.9 2.5 9.7 8.3 9.7 14.7s-3.8 12.2-9.7 14.7l-50.1 21.5-21.5 50.1c-2.5 5.9-8.3 9.7-14.7 9.7s-12.2-3.8-14.7-9.7L59.8 164.2 9.7 142.7C3.8 140.2 0 134.4 0 128s3.8-12.2 9.7-14.7L59.8 91.8 81.3 41.7C83.8 35.8 89.6 32 96 32s12.2 3.8 14.7 9.7zM464 304c6.4 0 12.2 3.8 14.7 9.7l21.5 50.1 50.1 21.5c5.9 2.5 9.7 8.3 9.7 14.7s-3.8 12.2-9.7 14.7l-50.1 21.5-21.5 50.1c-2.5 5.9-8.3 9.7-14.7 9.7s-12.2-3.8-14.7-9.7l-21.5-50.1-50.1-21.5c-5.9-2.5-9.7-8.3-9.7-14.7s3.8-12.2 9.7-14.7l50.1-21.5 21.5-50.1c2.5-5.9 8.3-9.7 14.7-9.7zM460 0c11 0 21.6 4.4 29.5 12.2l42.3 42.3C539.6 62.4 544 73 544 84s-4.4 21.6-12.2 29.5l-88.2 88.2-101.3-101.3 88.2-88.2C438.4 4.4 449 0 460 0zM44.2 398.5L308.4 134.3 409.7 235.6 145.5 499.8C137.6 507.6 127 512 116 512s-21.6-4.4-29.5-12.2L44.2 457.5C36.4 449.6 32 439 32 428s4.4-21.6 12.2-29.5z"],"house":["0 0 512 512","M277.8 8.6c-12.3-11.4-31.3-11.4-43.5 0l-224 208c-9.6 9-12.8 22.9-8 35.1S18.8 272 32 272l16 0 0 176c0 35.3 28.7 64 64 64l288 0c35.3 0 64-28.7 64-64l0-176 16 0c13.2 0 25-8.1 29.8-20.3s1.6-26.2-8-35.1l-224-208zM240 320l32 0c26.5 0 48 21.5 48 48l0 96-128 0 0-96c0-26.5 21.5-48 48-48z"],"users":["0 0 640 512","M320 16a104 104 0 1 1 0 208 104 104 0 1 1 0-208zM96 88a72 72 0 1 1 0 144 72 72 0 1 1 0-144zM0 416c0-70.7 57.3-128 128-128 12.8 0 25.2 1.9 36.9 5.4-32.9 36.8-52.9 85.4-52.9 138.6l0 16c0 11.4 2.4 22.2 6.7 32L32 480c-17.7 0-32-14.3-32-32l0-32zm521.3 64c4.3-9.8 6.7-20.6 6.7-32l0-16c0-53.2-20-101.8-52.9-138.6 11.7-3.5 24.1-5.4 36.9-5.4 70.7 0 128 57.3 128 128l0 32c0 17.7-14.3 32-32 32l-86.7 0zM472 160a72 72 0 1 1 144 0 72 72 0 1 1 -144 0zM160 432c0-88.4 71.6-160 160-160s160 71.6 160 160l0 16c0 17.7-14.3 32-32 32l-256 0c-17.7 0-32-14.3-32-32l0-16z"],"calendar-days":["0 0 448 512","M128 0c17.7 0 32 14.3 32 32l0 32 128 0 0-32c0-17.7 14.3-32 32-32s32 14.3 32 32l0 32 32 0c35.3 0 64 28.7 64 64l0 288c0 35.3-28.7 64-64 64L64 480c-35.3 0-64-28.7-64-64L0 128C0 92.7 28.7 64 64 64l32 0 0-32c0-17.7 14.3-32 32-32zM64 240l0 32c0 8.8 7.2 16 16 16l32 0c8.8 0 16-7.2 16-16l0-32c0-8.8-7.2-16-16-16l-32 0c-8.8 0-16 7.2-16 16zm128 0l0 32c0 8.8 7.2 16 16 16l32 0c8.8 0 16-7.2 16-16l0-32c0-8.8-7.2-16-16-16l-32 0c-8.8 0-16 7.2-16 16zm144-16c-8.8 0-16 7.2-16 16l0 32c0 8.8 7.2 16 16 16l32 0c8.8 0 16-7.2 16-16l0-32c0-8.8-7.2-16-16-16l-32 0zM64 368l0 32c0 8.8 7.2 16 16 16l32 0c8.8 0 16-7.2 16-16l0-32c0-8.8-7.2-16-16-16l-32 0c-8.8 0-16 7.2-16 16zm144-16c-8.8 0-16 7.2-16 16l0 32c0 8.8 7.2 16 16 16l32 0c8.8 0 16-7.2 16-16l0-32c0-8.8-7.2-16-16-16l-32 0zm112 16l0 32c0 8.8 7.2 16 16 16l32 0c8.8 0 16-7.2 16-16l0-32c0-8.8-7.2-16-16-16l-32 0c-8.8 0-16 7.2-16 16z"],"gear":["0 0 512 512","M195.1 9.5C198.1-5.3 211.2-16 226.4-16l59.8 0c15.2 0 28.3 10.7 31.3 25.5L332 79.5c14.1 6 27.3 13.7 39.3 22.8l67.8-22.5c14.4-4.8 30.2 1.2 37.8 14.4l29.9 51.8c7.6 13.2 4.9 29.8-6.5 39.9L447 233.3c.9 7.4 1.3 15 1.3 22.7s-.5 15.3-1.3 22.7l53.4 47.5c11.4 10.1 14 26.8 6.5 39.9l-29.9 51.8c-7.6 13.1-23.4 19.2-37.8 14.4l-67.8-22.5c-12.1 9.1-25.3 16.7-39.3 22.8l-14.4 69.9c-3.1 14.9-16.2 25.5-31.3 25.5l-59.8 0c-15.2 0-28.3-10.7-31.3-25.5l-14.4-69.9c-14.1-6-27.2-13.7-39.3-22.8L73.5 432.3c-14.4 4.8-30.2-1.2-37.8-14.4L5.8 366.1c-7.6-13.2-4.9-29.8 6.5-39.9l53.4-47.5c-.9-7.4-1.3-15-1.3-22.7s.5-15.3 1.3-22.7L12.3 185.8c-11.4-10.1-14-26.8-6.5-39.9L35.7 94.1c7.6-13.2 23.4-19.2 37.8-14.4l67.8 22.5c12.1-9.1 25.3-16.7 39.3-22.8L195.1 9.5zM256.3 336a80 80 0 1 0 -.6-160 80 80 0 1 0 .6 160z"],"book-medical":["0 0 448 512","M96 512l320 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l0-66.7c18.6-6.6 32-24.4 32-45.3l0-288c0-26.5-21.5-48-48-48L96 0C43 0 0 43 0 96L0 416c0 53 43 96 96 96zM64 416c0-17.7 14.3-32 32-32l256 0 0 64-256 0c-17.7 0-32-14.3-32-32zM192 120c0-8.8 7.2-16 16-16l32 0c8.8 0 16 7.2 16 16l0 40 40 0c8.8 0 16 7.2 16 16l0 32c0 8.8-7.2 16-16 16l-40 0 0 40c0 8.8-7.2 16-16 16l-32 0c-8.8 0-16-7.2-16-16l0-40-40 0c-8.8 0-16-7.2-16-16l0-32c0-8.8 7.2-16 16-16l40 0 0-40z"],"weight-scale":["0 0 448 512","M116.6 192c-3-10.1-4.6-20.9-4.6-32 0-61.9 50.1-112 112-112S336 98.1 336 160c0 11.1-1.6 21.9-4.6 32l-71 0 24.6-44.3c6.4-11.6 2.3-26.2-9.3-32.6s-26.2-2.3-32.6 9.3l-37.6 67.7-88.8 0zM128 32L64 32C28.7 32 0 60.7 0 96L0 416c0 35.3 28.7 64 64 64l320 0c35.3 0 64-28.7 64-64l0-320c0-35.3-28.7-64-64-64l-64 0C293.3 11.9 260 0 224 0s-69.3 11.9-96 32z"],"pills":["0 0 512 512","M64 112c0-26.5 21.5-48 48-48s48 21.5 48 48l0 112-96 0 0-112zM176 368c0-48.7 18.1-93.2 48-127l0-129C224 50.1 173.9 0 112 0S0 50.1 0 112L0 400c0 61.9 50.1 112 112 112 37.3 0 70.3-18.2 90.7-46.3-17-28.6-26.7-62-26.7-97.7zm64.7 67.4c4.6 8.7 16.3 9.7 23.3 2.7L438.1 264c7-7 6-18.7-2.7-23.3-20.1-10.7-43-16.7-67.4-16.7-79.5 0-144 64.5-144 144 0 24.3 6 47.3 16.7 67.4zM297.9 472c-7 7-6 18.7 2.7 23.3 20.1 10.7 43 16.7 67.4 16.7 79.5 0 144-64.5 144-144 0-24.3-6-47.3-16.7-67.4-4.6-8.7-16.3-9.7-23.3-2.7L297.9 472z"],"clock-rotate-left":["0 0 576 512","M288 64c106 0 192 86 192 192S394 448 288 448c-65.2 0-122.9-32.5-157.6-82.3-10.1-14.5-30.1-18-44.6-7.9s-18 30.1-7.9 44.6C124.1 468.6 201 512 288 512 429.4 512 544 397.4 544 256S429.4 0 288 0C202.3 0 126.5 42.1 80 106.7L80 80c0-17.7-14.3-32-32-32S16 62.3 16 80l0 112c0 17.7 14.3 32 32 32l24.6 0c.5 0 1 0 1.5 0l86 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-38.3 0C154.9 102.6 217 64 288 64zm24 88c0-13.3-10.7-24-24-24s-24 10.7-24 24l0 104c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65 0-94.1z"],"bell":["0 0 448 512","M224 0c-17.7 0-32 14.3-32 32l0 3.2C119 50 64 114.6 64 192l0 21.7c0 48.1-16.4 94.8-46.4 132.4L7.8 358.3C2.7 364.6 0 372.4 0 380.5 0 400.1 15.9 416 35.5 416l376.9 0c19.6 0 35.5-15.9 35.5-35.5 0-8.1-2.7-15.9-7.8-22.2l-9.8-12.2C400.4 308.5 384 261.8 384 213.7l0-21.7c0-77.4-55-142-128-156.8l0-3.2c0-17.7-14.3-32-32-32zM162 464c7.1 27.6 32.2 48 62 48s54.9-20.4 62-48l-124 0z"],"triangle-exclamation":["0 0 512 512","M256 0c14.7 0 28.2 8.1 35.2 21l216 400c6.7 12.4 6.4 27.4-.8 39.5S486.1 480 472 480L40 480c-14.1 0-27.2-7.4-34.4-19.5s-7.5-27.1-.8-39.5l216-400c7-12.9 20.5-21 35.2-21zm0 352a32 32 0 1 0 0 64 32 32 0 1 0 0-64zm0-192c-18.2 0-32.7 15.5-31.4 33.7l7.4 104c.9 12.5 11.4 22.3 23.9 22.3 12.6 0 23-9.7 23.9-22.3l7.4-104c1.3-18.2-13.1-33.7-31.4-33.7z"],"circle-check":["0 0 512 512","M256 512a256 256 0 1 1 0-512 256 256 0 1 1 0 512zM374 145.7c-10.7-7.8-25.7-5.4-33.5 5.3L221.1 315.2 169 263.1c-9.4-9.4-24.6-9.4-33.9 0s-9.4 24.6 0 33.9l72 72c5 5 11.8 7.5 18.8 7s13.4-4.1 17.5-9.8L379.3 179.2c7.8-10.7 5.4-25.7-5.3-33.5z"],"pen-to-square":["0 0 512 512","M471.6 21.7c-21.9-21.9-57.3-21.9-79.2 0L368 46.1 465.9 144 490.3 119.6c21.9-21.9 21.9-57.3 0-79.2L471.6 21.7zm-299.2 220c-6.1 6.1-10.8 13.6-13.5 21.9l-29.6 88.8c-2.9 8.6-.6 18.1 5.8 24.6s15.9 8.7 24.6 5.8l88.8-29.6c8.2-2.7 15.7-7.4 21.9-13.5L432 177.9 334.1 80 172.4 241.7zM96 64C43 64 0 107 0 160L0 416c0 53 43 96 96 96l256 0c53 0 96-43 96-96l0-96c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 96c0 17.7-14.3 32-32 32L96 448c-17.7 0-32-14.3-32-32l0-256c0-17.7 14.3-32 32-32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32L96 64z"],"leaf":["0 0 512 512","M471.3 6.7C477.7 .6 487-1.6 495.6 1.2 505.4 4.5 512 13.7 512 24l0 186.9c0 131.2-108.1 237.1-238.8 237.1-77 0-143.4-49.5-167.5-118.7-35.4 30.8-57.7 76.1-57.7 126.7 0 13.3-10.7 24-24 24S0 469.3 0 456C0 381.1 38.2 315.1 96.1 276.3 131.4 252.7 173.5 240 216 240l80 0c13.3 0 24-10.7 24-24s-10.7-24-24-24l-80 0c-39.7 0-77.3 8.8-111 24.5 23.3-70 89.2-120.5 167-120.5 66.4 0 115.8-22.1 148.7-44 19.2-12.8 35.5-28.1 50.7-45.3z"],"magnifying-glass":["0 0 512 512","M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376C296.3 401.1 253.9 416 208 416 93.1 416 0 322.9 0 208S93.1 0 208 0 416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z"],"palette":["0 0 512 512","M512 256c0 .9 0 1.8 0 2.7-.4 36.5-33.6 61.3-70.1 61.3L344 320c-26.5 0-48 21.5-48 48 0 3.4 .4 6.7 1 9.9 2.1 10.2 6.5 20 10.8 29.9 6.1 13.8 12.1 27.5 12.1 42 0 31.8-21.6 60.7-53.4 62-3.5 .1-7 .2-10.6 .2-141.4 0-256-114.6-256-256S114.6 0 256 0 512 114.6 512 256zM128 288a32 32 0 1 0 -64 0 32 32 0 1 0 64 0zm0-96a32 32 0 1 0 0-64 32 32 0 1 0 0 64zM288 96a32 32 0 1 0 -64 0 32 32 0 1 0 64 0zm96 96a32 32 0 1 0 0-64 32 32 0 1 0 0 64z"],"user-group":["0 0 576 512","M64 128a112 112 0 1 1 224 0 112 112 0 1 1 -224 0zM0 464c0-97.2 78.8-176 176-176s176 78.8 176 176l0 6c0 23.2-18.8 42-42 42L42 512c-23.2 0-42-18.8-42-42l0-6zM432 64a96 96 0 1 1 0 192 96 96 0 1 1 0-192zm0 240c79.5 0 144 64.5 144 144l0 22.4c0 23-18.6 41.6-41.6 41.6l-144.8 0c6.6-12.5 10.4-26.8 10.4-42l0-6c0-51.5-17.4-98.9-46.5-136.7 22.6-14.7 49.6-23.3 78.5-23.3z"],"user":["0 0 448 512","M224 248a120 120 0 1 0 0-240 120 120 0 1 0 0 240zm-29.7 56C95.8 304 16 383.8 16 482.3 16 498.7 29.3 512 45.7 512l356.6 0c16.4 0 29.7-13.3 29.7-29.7 0-98.5-79.8-178.3-178.3-178.3l-59.4 0z"],"envelope":["0 0 512 512","M48 64c-26.5 0-48 21.5-48 48 0 15.1 7.1 29.3 19.2 38.4l208 156c17.1 12.8 40.5 12.8 57.6 0l208-156c12.1-9.1 19.2-23.3 19.2-38.4 0-26.5-21.5-48-48-48L48 64zM0 196L0 384c0 35.3 28.7 64 64 64l384 0c35.3 0 64-28.7 64-64l0-188-198.4 148.8c-34.1 25.6-81.1 25.6-115.2 0L0 196z"],"clipboard":["0 0 384 512","M320 32l-8.6 0C300.4 12.9 279.7 0 256 0L128 0C104.3 0 83.6 12.9 72.6 32L64 32C28.7 32 0 60.7 0 96L0 448c0 35.3 28.7 64 64 64l256 0c35.3 0 64-28.7 64-64l0-352c0-35.3-28.7-64-64-64zM136 112c-13.3 0-24-10.7-24-24s10.7-24 24-24l112 0c13.3 0 24 10.7 24 24s-10.7 24-24 24l-112 0z"],"rotate-left":["0 0 512 512","M24 192l144 0c9.7 0 18.5-5.8 22.2-14.8s1.7-19.3-5.2-26.2l-46.7-46.7c75.3-58.6 184.3-53.3 253.5 15.9 75 75 75 196.5 0 271.5s-196.5 75-271.5 0c-10.2-10.2-19-21.3-26.4-33-9.5-14.9-29.3-19.3-44.2-9.8s-19.3 29.3-9.8 44.2C49.7 408.7 61.4 423.5 75 437 175 537 337 537 437 437S537 175 437 75C342.8-19.3 193.3-24.7 92.7 58.8L41 7C34.1 .2 23.8-1.9 14.8 1.8S0 14.3 0 24L0 168c0 13.3 10.7 24 24 24z"],"right-from-bracket":["0 0 512 512","M505 273c9.4-9.4 9.4-24.6 0-33.9L361 95c-6.9-6.9-17.2-8.9-26.2-5.2S320 102.3 320 112l0 80-112 0c-26.5 0-48 21.5-48 48l0 32c0 26.5 21.5 48 48 48l112 0 0 80c0 9.7 5.8 18.5 14.8 22.2s19.3 1.7 26.2-5.2L505 273zM160 96c17.7 0 32-14.3 32-32s-14.3-32-32-32L96 32C43 32 0 75 0 128L0 384c0 53 43 96 96 96l64 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-64 0c-17.7 0-32-14.3-32-32l0-256c0-17.7 14.3-32 32-32l64 0z"],"box-archive":["0 0 512 512","M0 64C0 46.3 14.3 32 32 32l448 0c17.7 0 32 14.3 32 32l0 32c0 17.7-14.3 32-32 32L32 128C14.3 128 0 113.7 0 96L0 64zM32 176l448 0 0 240c0 35.3-28.7 64-64 64L96 480c-35.3 0-64-28.7-64-64l0-240zm152 64c-13.3 0-24 10.7-24 24s10.7 24 24 24l144 0c13.3 0 24-10.7 24-24s-10.7-24-24-24l-144 0z"],"trash-can":["0 0 448 512","M136.7 5.9C141.1-7.2 153.3-16 167.1-16l113.9 0c13.8 0 26 8.8 30.4 21.9L320 32 416 32c17.7 0 32 14.3 32 32s-14.3 32-32 32L32 96C14.3 96 0 81.7 0 64S14.3 32 32 32l96 0 8.7-26.1zM32 144l384 0 0 304c0 35.3-28.7 64-64 64L96 512c-35.3 0-64-28.7-64-64l0-304zm88 64c-13.3 0-24 10.7-24 24l0 192c0 13.3 10.7 24 24 24s24-10.7 24-24l0-192c0-13.3-10.7-24-24-24zm104 0c-13.3 0-24 10.7-24 24l0 192c0 13.3 10.7 24 24 24s24-10.7 24-24l0-192c0-13.3-10.7-24-24-24zm104 0c-13.3 0-24 10.7-24 24l0 192c0 13.3 10.7 24 24 24s24-10.7 24-24l0-192c0-13.3-10.7-24-24-24z"],"pen":["0 0 512 512","M352.9 21.2L308 66.1 445.9 204 490.8 159.1C504.4 145.6 512 127.2 512 108s-7.6-37.6-21.2-51.1L455.1 21.2C441.6 7.6 423.2 0 404 0s-37.6 7.6-51.1 21.2zM274.1 100L58.9 315.1c-10.7 10.7-18.5 24.1-22.6 38.7L.9 481.6c-2.3 8.3 0 17.3 6.2 23.4s15.1 8.5 23.4 6.2l127.8-35.5c14.6-4.1 27.9-11.8 38.7-22.6L412 237.9 274.1 100z"],"plus":["0 0 448 512","M256 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 160-160 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l160 0 0 160c0 17.7 14.3 32 32 32s32-14.3 32-32l0-160 160 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-160 0 0-160z"],"bandage":["0 0 576 512","M464 416l48 0c35.3 0 64-28.7 64-64l0-192c0-35.3-28.7-64-64-64l-48 0 0 320zM416 96l-256 0 0 320 256 0 0-320zM64 96C28.7 96 0 124.7 0 160L0 352c0 35.3 28.7 64 64 64l48 0 0-320-48 0zM216 208a24 24 0 1 1 48 0 24 24 0 1 1 -48 0zm120-24a24 24 0 1 1 0 48 24 24 0 1 1 0-48zM216 304a24 24 0 1 1 48 0 24 24 0 1 1 -48 0zm120-24a24 24 0 1 1 0 48 24 24 0 1 1 0-48z"],"pump-soap":["0 0 320 512","M96 0l0 80 128 0 0-24 72 0c13.3 0 24-10.7 24-24S309.3 8 296 8l-72 0 0-8c0-17.7-14.3-32-32-32l-64 0C110.3-32 96-17.7 96 0zM64 128c-35.3 0-64 28.7-64 64L0 448c0 35.3 28.7 64 64 64l192 0c35.3 0 64-28.7 64-64l0-256c0-35.3-28.7-64-64-64L64 128zM224 344c0 35.3-28.7 56-64 56s-64-20.7-64-56c0-32.5 37-80.9 50.9-97.9 3.2-3.9 8.1-6.1 13.1-6.1s9.9 2.2 13.1 6.1C187 263.1 224 311.5 224 344z"],"flask":["0 0 448 512","M288 0L128 0C110.3 0 96 14.3 96 32s14.3 32 32 32L128 215.5 7.5 426.3C2.6 435 0 444.7 0 454.7 0 486.4 25.6 512 57.3 512l333.4 0c31.6 0 57.3-25.6 57.3-57.3 0-10-2.6-19.8-7.5-28.4L320 215.5 320 64c17.7 0 32-14.3 32-32S337.7 0 320 0L288 0zM192 215.5l0-151.5 64 0 0 151.5c0 11.1 2.9 22.1 8.4 31.8l41.6 72.7-164 0 41.6-72.7c5.5-9.7 8.4-20.6 8.4-31.8z"],"heart-pulse":["0 0 512 512","M256 107.9L241 87.1C216 52.5 175.9 32 133.1 32 59.6 32 0 91.6 0 165.1l0 2.6c0 23.6 6.2 48 16.6 72.3l106 0c3.2 0 6.1-1.9 7.4-4.9l31.8-76.3c3.7-8.8 12.3-14.6 21.8-14.8s18.3 5.4 22.2 14.1l51.3 113.9 41.4-82.8c4.1-8.1 12.4-13.3 21.5-13.3s17.4 5.1 21.5 13.3l23.2 46.3c1.4 2.7 4.1 4.4 7.2 4.4l123.6 0c10.5-24.3 16.6-48.7 16.6-72.3l0-2.6C512 91.6 452.4 32 378.9 32 336.2 32 296 52.5 271 87.1l-15 20.7zM469.6 288l-97.8 0c-21.2 0-40.6-12-50.1-31l-1.7-3.4-42.5 85.1c-4.1 8.3-12.7 13.5-22 13.3s-17.6-5.7-21.4-14.1l-49.3-109.5-10.5 25.2c-8.7 20.9-29.1 34.5-51.7 34.5l-80.2 0c47.2 73.8 123 141.7 170.4 177.9 12.4 9.4 27.6 14.1 43.1 14.1s30.8-4.6 43.1-14.1C346.6 429.7 422.4 361.8 469.6 288z"],"brain":["0 0 512 512","M120 56c0-30.9 25.1-56 56-56l24 0c17.7 0 32 14.3 32 32l0 448c0 17.7-14.3 32-32 32l-32 0c-29.8 0-54.9-20.4-62-48-.7 0-1.3 0-2 0-44.2 0-80-35.8-80-80 0-18 6-34.6 16-48-19.4-14.6-32-37.8-32-64 0-30.9 17.6-57.8 43.2-71.1-7.1-12-11.2-26-11.2-40.9 0-44.2 35.8-80 80-80l0-24zm272 0l0 24c44.2 0 80 35.8 80 80 0 15-4.1 29-11.2 40.9 25.7 13.3 43.2 40.1 43.2 71.1 0 26.2-12.6 49.4-32 64 10 13.4 16 30 16 48 0 44.2-35.8 80-80 80-.7 0-1.3 0-2 0-7.1 27.6-32.2 48-62 48l-32 0c-17.7 0-32-14.3-32-32l0-448c0-17.7 14.3-32 32-32l24 0c30.9 0 56 25.1 56 56z"],"bone":["0 0 640 512","M197.4 160c-3.9 0-7.2-2.8-8.1-6.6-10.2-42.1-48.1-73.4-93.3-73.4-53 0-96 43-96 96 0 29.1 12.9 55.1 33.3 72.7 4.3 3.7 4.3 10.8 0 14.5-20.4 17.6-33.3 43.7-33.3 72.7 0 53 43 96 96 96 45.2 0 83.1-31.3 93.3-73.4 .9-3.8 4.2-6.6 8.1-6.6l245.1 0c3.9 0 7.2 2.8 8.1 6.6 10.2 42.1 48.1 73.4 93.3 73.4 53 0 96-43 96-96 0-29.1-12.9-55.1-33.3-72.7-4.3-3.7-4.3-10.8 0-14.5 20.4-17.6 33.3-43.7 33.3-72.7 0-53-43-96-96-96-45.2 0-83.1 31.3-93.3 73.4-.9 3.8-4.2 6.6-8.1 6.6l-245.1 0z"],"ear-listen":["0 0 512 512","M379.6 .3c-8.9 1.2-17.2 6.2-22.4 14.1-6.8 10.4-7 24.1-.4 34.6 5.6 8.9 15.5 12.7 23.8 18.5 7.5 5.2 17.6 13.2 27.7 24.2 20 21.7 39.5 54.3 39.5 100.3 0 17.7 14.3 32 32 32s32-14.3 32-32c0-66-28.5-113.4-56.5-143.7-13.9-15.1-27.8-26.1-38.3-33.3-11-7.6-23.5-16.6-37.6-14.7zM240 128c-57.6 0-105.1 43.6-111.3 99.5-1.9 17.6-17.8 30.2-35.3 28.3s-30.2-17.8-28.3-35.3c9.7-88 84.3-156.5 174.9-156.5 97.2 0 176 78.8 176 176 0 46-17.7 87.9-46.6 119.3-12 13-17.4 24.8-17.4 34.7l0 6.1c0 61.9-50.1 112-112 112-17.7 0-32-14.3-32-32s14.3-32 32-32c26.5 0 48-21.5 48-48l0-6.1c0-32.9 17.4-59.6 34.4-78 18.4-20 29.6-46.6 29.6-75.9 0-61.9-50.1-112-112-112zM0 480a32 32 0 1 1 64 0 32 32 0 1 1 -64 0zm160-96a32 32 0 1 0 0-64 32 32 0 1 0 0 64zM86.6 361.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l64 64c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3l-64-64zM240 208c-17.7 0-32 14.3-32 32 0 13.3-10.7 24-24 24s-24-10.7-24-24c0-44.2 35.8-80 80-80s80 35.8 80 80c0 13.3-10.7 24-24 24s-24-10.7-24-24c0-17.7-14.3-32-32-32z"],"user-doctor":["0 0 448 512","M224 8a120 120 0 1 0 0 240 120 120 0 1 0 0-240zm60 312.8c-5.4-.5-11-.8-16.6-.8l-86.9 0c-5.6 0-11.1 .3-16.6 .8l0 67.5c16.5 7.6 28 24.3 28 43.6 0 26.5-21.5 48-48 48s-48-21.5-48-48c0-19.4 11.5-36.1 28-43.6l0-58.4C61 353 16 413.6 16 484.6 16 499.7 28.3 512 43.4 512l361.1 0c15.1 0 27.4-12.3 27.4-27.4 0-71-45-131.5-108-154.6l0 37.4c23.3 8.2 40 30.5 40 56.6l0 32c0 11-9 20-20 20s-20-9-20-20l0-32c0-11-9-20-20-20s-20 9-20 20l0 32c0 11-9 20-20 20s-20-9-20-20l0-32c0-26.1 16.7-48.3 40-56.6l0-46.6z"],"x-ray":["0 0 512 512","M0 64C0 46.3 14.3 32 32 32l448 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l0 320c17.7 0 32 14.3 32 32s-14.3 32-32 32L32 480c-17.7 0-32-14.3-32-32s14.3-32 32-32L32 96C14.3 96 0 81.7 0 64zm280 56c0-13.3-10.7-24-24-24s-24 10.7-24 24l0 16-64 0c-13.3 0-24 10.7-24 24s10.7 24 24 24l64 0 0 48-80 0c-13.3 0-24 10.7-24 24s10.7 24 24 24l80 0 0 48-64 0c-13.3 0-24 10.7-24 24s10.7 24 24 24l64 0 0 16c0 13.3 10.7 24 24 24s24-10.7 24-24l0-16 64 0c13.3 0 24-10.7 24-24s-10.7-24-24-24l-64 0 0-48 80 0c13.3 0 24-10.7 24-24s-10.7-24-24-24l-80 0 0-48 64 0c13.3 0 24-10.7 24-24s-10.7-24-24-24l-64 0 0-16z"],"hospital":["0 0 576 512","M128 64c0-35.3 28.7-64 64-64L384 0c35.3 0 64 28.7 64 64l0 64 64 0c35.3 0 64 28.7 64 64l0 256c0 35.3-28.7 64-64 64L64 512c-35.3 0-64-28.7-64-64L0 192c0-35.3 28.7-64 64-64l64 0 0-64zM272 352c-17.7 0-32 14.3-32 32l0 80 96 0 0-80c0-17.7-14.3-32-32-32l-32 0zM128 368l0-32c0-8.8-7.2-16-16-16l-32 0c-8.8 0-16 7.2-16 16l0 32c0 8.8 7.2 16 16 16l32 0c8.8 0 16-7.2 16-16zM112 256c8.8 0 16-7.2 16-16l0-32c0-8.8-7.2-16-16-16l-32 0c-8.8 0-16 7.2-16 16l0 32c0 8.8 7.2 16 16 16l32 0zM512 368l0-32c0-8.8-7.2-16-16-16l-32 0c-8.8 0-16 7.2-16 16l0 32c0 8.8 7.2 16 16 16l32 0c8.8 0 16-7.2 16-16zM496 256c8.8 0 16-7.2 16-16l0-32c0-8.8-7.2-16-16-16l-32 0c-8.8 0-16 7.2-16 16l0 32c0 8.8 7.2 16 16 16l32 0zM264 104l0 32-32 0c-8.8 0-16 7.2-16 16l0 16c0 8.8 7.2 16 16 16l32 0 0 32c0 8.8 7.2 16 16 16l16 0c8.8 0 16-7.2 16-16l0-32 32 0c8.8 0 16-7.2 16-16l0-16c0-8.8-7.2-16-16-16l-32 0 0-32c0-8.8-7.2-16-16-16l-16 0c-8.8 0-16 7.2-16 16z"],"spa":["0 0 576 512","M169.7 227.5c34.3 18.7 64.5 44.1 88.8 74.5 11.1 13.9 21 28.9 29.4 44.8 8.5-15.9 18.3-30.8 29.4-44.8 24.3-30.5 54.5-55.9 88.8-74.5 41.7-22.7 89.4-35.5 139.7-35.5l9.9 0c11.1 0 20.1 9 20.1 20.1 0 148-119.9 267.9-267.9 267.9l-40.2 0C119.9 480 0 360.1 0 212.1 0 201 9 192 20.1 192l9.9 0c50.4 0 98.1 12.8 139.7 35.5zM303.9 38c16.9 15.9 61.4 63.4 89 142.3-40.1 20.2-75.8 48.2-104.9 82.1-29.2-33.9-64.8-61.8-104.9-82.1 27.6-78.9 72.2-126.4 89-142.3 4.3-4.1 10-6 15.9-6s11.6 2 15.9 6z"],"scissors":["0 0 512 512","M192 256l-39.5 39.5c-12.6-4.9-26.2-7.5-40.5-7.5-61.9 0-112 50.1-112 112s50.1 112 112 112 112-50.1 112-112c0-14.3-2.7-27.9-7.5-40.5L499.2 76.8c7.1-7.1 7.1-18.5 0-25.6-28.3-28.3-74.1-28.3-102.4 0L256 192 216.5 152.5c4.9-12.6 7.5-26.2 7.5-40.5 0-61.9-50.1-112-112-112S0 50.1 0 112 50.1 224 112 224c14.3 0 27.9-2.7 40.5-7.5L192 256zm97.9 97.9L396.8 460.8c28.3 28.3 74.1 28.3 102.4 0 7.1-7.1 7.1-18.5 0-25.6l-145.3-145.3-64 64zM64 112a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm48 240a48 48 0 1 1 0 96 48 48 0 1 1 0-96z"],"bath":["0 0 512 512","M96 77.3c0-7.3 5.9-13.3 13.3-13.3 3.5 0 6.9 1.4 9.4 3.9l14.9 14.9c-3.6 9.1-5.5 18.9-5.5 29.2 0 19.9 7.2 38 19.2 52-5.3 9.2-4 21.1 3.8 29 9.4 9.4 24.6 9.4 33.9 0L289 89c9.4-9.4 9.4-24.6 0-33.9-7.8-7.9-19.8-9.1-29-3.8-14-12-32.1-19.2-52-19.2-10.3 0-20.2 2-29.2 5.5L163.9 22.6C149.4 8.1 129.7 0 109.3 0 66.6 0 32 34.6 32 77.3L32 256c-17.7 0-32 14.3-32 32s14.3 32 32 32l0 48c0 28.4 12.4 54 32 71.6L64 480c0 17.7 14.3 32 32 32s32-14.3 32-32l0-16 256 0 0 16c0 17.7 14.3 32 32 32s32-14.3 32-32l0-40.4c19.6-17.6 32-43.1 32-71.6l0-48c17.7 0 32-14.3 32-32s-14.3-32-32-32L96 256 96 77.3z"],"heart":["0 0 512 512","M241 87.1l15 20.7 15-20.7C296 52.5 336.2 32 378.9 32 452.4 32 512 91.6 512 165.1l0 2.6c0 112.2-139.9 242.5-212.9 298.2-12.4 9.4-27.6 14.1-43.1 14.1s-30.8-4.6-43.1-14.1C139.9 410.2 0 279.9 0 167.7l0-2.6C0 91.6 59.6 32 133.1 32 175.8 32 216 52.5 241 87.1z"],"child":["0 0 320 512","M96 64A64 64 0 1 1 224 64 64 64 0 1 1 96 64zm48 320l0 96c0 17.7-14.3 32-32 32s-32-14.3-32-32L80 287.8 59.1 321c-9.4 15-29.2 19.4-44.1 10S-4.5 301.9 4.9 287l39.9-63.3C69.7 184 113.2 160 160 160s90.3 24 115.2 63.6L315.1 287c9.4 15 4.9 34.7-10 44.1s-34.7 4.9-44.1-10L240 287.8 240 480c0 17.7-14.3 32-32 32s-32-14.3-32-32l0-96-32 0z"],"dog":["0 0 576 512","M32 112c16.6 0 30.2 12.6 31.8 28.7l.3 6.6C65.8 163.4 79.4 176 96 176l179.1 0 140.9 60.4 0 243.6c0 17.7-14.3 32-32 32l-32 0c-17.7 0-32-14.3-32-32l0-131.3C296 361 268.8 368 240 368s-56-7-80-19.3L160 480c0 17.7-14.3 32-32 32l-32 0c-17.7 0-32-14.3-32-32l0-245.6c-37.3-13.2-64-48.6-64-90.4 0-17.7 14.3-32 32-32zM355.8-32c7.7 0 14.9 3.6 19.6 9.8L392 0 444.1 0c12.7 0 24.9 5.1 33.9 14.1L496 32 552 32c13.3 0 24 10.7 24 24l0 24c0 44.2-35.8 80-80 80l-64 0-7 28-124.7-53.4 31.6-147.2C334.3-23.9 344.2-32 355.8-32zM448 44a20 20 0 1 0 0 40 20 20 0 1 0 0-40z"],"cat":["0 0 576 512","M64 96c53 0 96 43 96 96l0 85.8c29.7-44.7 77.8-76.2 133.4-84 25.6 60 85.2 102.1 154.6 102.1 10.9 0 21.6-1.1 32-3.1L480 480c0 17.7-14.3 32-32 32s-32-14.3-32-32l0-140.8-136 108.8 56 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-144 0c-53 0-96-43-96-96l0-224c0-16.6-12.6-30.2-28.7-31.8l-6.6-.3C44.6 158.2 32 144.6 32 128 32 110.3 46.3 96 64 96zM533.8 3.2C544.2-5.5 560 1.9 560 15.5L560 128c0 61.9-50.1 112-112 112S336 189.9 336 128l0-112.5c0-13.6 15.8-21 26.2-12.3L416 48 480 48 533.8 3.2zM400 108a20 20 0 1 0 0 40 20 20 0 1 0 0-40zm96 0a20 20 0 1 0 0 40 20 20 0 1 0 0-40z"],"paperclip":["0 0 512 512","M224.6 12.8c56.2-56.2 147.4-56.2 203.6 0s56.2 147.4 0 203.6l-164 164c-34.4 34.4-90.1 34.4-124.5 0s-34.4-90.1 0-124.5L292.5 103.3c12.5-12.5 32.8-12.5 45.3 0s12.5 32.8 0 45.3L185 301.3c-9.4 9.4-9.4 24.6 0 33.9s24.6 9.4 33.9 0l164-164c31.2-31.2 31.2-81.9 0-113.1s-81.9-31.2-113.1 0l-164 164c-53.1 53.1-53.1 139.2 0 192.3s139.2 53.1 192.3 0L428.3 284.3c12.5-12.5 32.8-12.5 45.3 0s12.5 32.8 0 45.3L343.4 459.6c-78.1 78.1-204.7 78.1-282.8 0s-78.1-204.7 0-282.8l164-164z"],"chevron-left":["0 0 320 512","M9.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l192 192c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L77.3 256 246.6 86.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-192 192z"],"chevron-right":["0 0 320 512","M311.1 233.4c12.5 12.5 12.5 32.8 0 45.3l-192 192c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L243.2 256 73.9 86.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l192 192z"],"ellipsis":["0 0 448 512","M0 256a56 56 0 1 1 112 0 56 56 0 1 1 -112 0zm168 0a56 56 0 1 1 112 0 56 56 0 1 1 -112 0zm224-56a56 56 0 1 1 0 112 56 56 0 1 1 0-112z"],"lock":["0 0 384 512","M128 96l0 64 128 0 0-64c0-35.3-28.7-64-64-64s-64 28.7-64 64zM64 160l0-64C64 25.3 121.3-32 192-32S320 25.3 320 96l0 64c35.3 0 64 28.7 64 64l0 224c0 35.3-28.7 64-64 64L64 512c-35.3 0-64-28.7-64-64L0 224c0-35.3 28.7-64 64-64z"],"tag":["0 0 512 512","M32.5 96l0 149.5c0 17 6.7 33.3 18.7 45.3l192 192c25 25 65.5 25 90.5 0L483.2 333.3c25-25 25-65.5 0-90.5l-192-192C279.2 38.7 263 32 246 32L96.5 32c-35.3 0-64 28.7-64 64zm112 16a32 32 0 1 1 0 64 32 32 0 1 1 0-64z"],"bug":["0 0 576 512","M192 96c0-53 43-96 96-96s96 43 96 96l0 3.6c0 15.7-12.7 28.4-28.4 28.4l-135.1 0c-15.7 0-28.4-12.7-28.4-28.4l0-3.6zm345.6 12.8c10.6 14.1 7.7 34.2-6.4 44.8l-97.8 73.3c5.3 8.9 9.3 18.7 11.8 29.1l98.8 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-96 0 0 32c0 2.6-.1 5.3-.2 7.9l83.4 62.5c14.1 10.6 17 30.7 6.4 44.8s-30.7 17-44.8 6.4l-63.1-47.3c-23.2 44.2-66.5 76.2-117.7 83.9L312 280c0-13.3-10.7-24-24-24s-24 10.7-24 24l0 230.2c-51.2-7.7-94.5-39.7-117.7-83.9L83.2 473.6c-14.1 10.6-34.2 7.7-44.8-6.4s-7.7-34.2 6.4-44.8l83.4-62.5c-.1-2.6-.2-5.2-.2-7.9l0-32-96 0c-17.7 0-32-14.3-32-32s14.3-32 32-32l98.8 0c2.5-10.4 6.5-20.2 11.8-29.1L44.8 153.6c-14.1-10.6-17-30.7-6.4-44.8s30.7-17 44.8-6.4L192 184c12.3-5.1 25.8-8 40-8l112 0c14.2 0 27.7 2.8 40 8l108.8-81.6c14.1-10.6 34.2-7.7 44.8 6.4z"],"calendar-check":["0 0 448 512","M320 0c17.7 0 32 14.3 32 32l0 32 32 0c35.3 0 64 28.7 64 64l0 288c0 35.3-28.7 64-64 64L64 480c-35.3 0-64-28.7-64-64L0 128C0 92.7 28.7 64 64 64l32 0 0-32c0-17.7 14.3-32 32-32s32 14.3 32 32l0 32 128 0 0-32c0-17.7 14.3-32 32-32zm22 161.7c-10.7-7.8-25.7-5.4-33.5 5.3L189.1 331.2 137 279.1c-9.4-9.4-24.6-9.4-33.9 0s-9.4 24.6 0 33.9l72 72c5 5 11.9 7.5 18.8 7s13.4-4.1 17.5-9.8L347.3 195.2c7.8-10.7 5.4-25.7-5.3-33.5z"],"calendar-plus":["0 0 448 512","M128 0c17.7 0 32 14.3 32 32l0 32 128 0 0-32c0-17.7 14.3-32 32-32s32 14.3 32 32l0 32 32 0c35.3 0 64 28.7 64 64l0 288c0 35.3-28.7 64-64 64L64 480c-35.3 0-64-28.7-64-64L0 128C0 92.7 28.7 64 64 64l32 0 0-32c0-17.7 14.3-32 32-32zm96 192c-13.3 0-24 10.7-24 24l0 48-48 0c-13.3 0-24 10.7-24 24s10.7 24 24 24l48 0 0 48c0 13.3 10.7 24 24 24s24-10.7 24-24l0-48 48 0c13.3 0 24-10.7 24-24s-10.7-24-24-24l-48 0 0-48c0-13.3-10.7-24-24-24z"],"location-dot":["0 0 384 512","M0 188.6C0 84.4 86 0 192 0S384 84.4 384 188.6c0 119.3-120.2 262.3-170.4 316.8-11.8 12.8-31.5 12.8-43.3 0-50.2-54.5-170.4-197.5-170.4-316.8zM192 256a64 64 0 1 0 0-128 64 64 0 1 0 0 128z"],"clock":["0 0 512 512","M256 0a256 256 0 1 1 0 512 256 256 0 1 1 0-512zM232 120l0 136c0 8 4 15.5 10.7 20l96 64c11 7.4 25.9 4.4 33.3-6.7s4.4-25.9-6.7-33.3L280 243.2 280 120c0-13.3-10.7-24-24-24s-24 10.7-24 24z"],"check":["0 0 448 512","M434.8 70.1c14.3 10.4 17.5 30.4 7.1 44.7l-256 352c-5.5 7.6-14 12.3-23.4 13.1s-18.5-2.7-25.1-9.3l-128-128c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l101.5 101.5 234-321.7c10.4-14.3 30.4-17.5 44.7-7.1z"],"xmark":["0 0 384 512","M55.1 73.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L147.2 256 9.9 393.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192.5 301.3 329.9 438.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L237.8 256 375.1 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192.5 210.7 55.1 73.4z"]};
 
-/* ---------- Couche « nuage » : comptes + synchronisation Firebase ----------
-   Active uniquement si firebase-config.js est rempli. Sinon l'app tourne en mode démonstration locale. */
-const FB_CFG=window.FIREBASE_CONFIG||null;
-const CLOUD_ASKED=!!(FB_CFG&&FB_CFG.apiKey&&!/COLLEZ|VOTRE|XXXX/i.test(FB_CFG.apiKey));
-const CLOUD=CLOUD_ASKED&&!!window.firebase;
-const CLOUD_BROKEN=CLOUD_ASKED&&!window.firebase;
-const JOIN=(()=>{try{return (new URLSearchParams(location.search).get('join')||'').toUpperCase().replace(/[^A-Z0-9-]/g,'').slice(0,20)}catch(e){return ''}})();
+/* ---------- Couche « nuage » : comptes + synchronisation avec le serveur (Cloudflare Workers + D1, voir src/) ----------
+   Mode démonstration (données d'exemple, sur l'appareil uniquement) : ajouter ?demo à l'adresse. */
+const QS=(()=>{try{return new URLSearchParams(location.search)}catch(e){return new URLSearchParams('')}})();
+const DEMO=QS.has('demo')||!/^https?:$/.test(location.protocol);
+const CLOUD=!DEMO;
+const CLOUD_BROKEN=false;
+const JOIN=(QS.get('join')||'').toUpperCase().replace(/[^A-Z0-9-]/g,'').slice(0,20);
+const RESET=(QS.get('reset')||'').replace(/[^A-Za-z0-9_-]/g,'').slice(0,100);
 const newCode=()=>{const A='ABCDEFGHJKMNPQRSTUVWXYZ23456789';const b=new Uint8Array(12);crypto.getRandomValues(b);let s='';b.forEach((x,i)=>{s+=A[x%A.length];if(i%4===3&&i<11)s+='-'});return s};
 const Cloud=CLOUD?(()=>{
-  firebase.initializeApp(FB_CFG);
-  const auth=firebase.auth(),fs=firebase.firestore();
-  try{fs.enablePersistence({synchronizeTabs:true}).catch(()=>{})}catch(e){}
-  try{auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{})}catch(e){}
-  const col=n=>fs.collection(n);
-  const fam=fid=>col('families').doc(fid);
-  const now=()=>Date.now();
-  let st=null,remoteCb=()=>{},errCb=()=>{},pendingName='';
+  /* Copie locale du dernier état reçu : l'appli s'ouvre aussi hors connexion */
+  const CACHE='carnet-cache-v1';
+  const POLL_MS=20000;
+  let st=null,me=null,remoteCb=()=>{},errCb=()=>{},authCb=()=>{};
+  let pending=null,inflight=false,timer=0,pollTimer=0,polling=false;
   const split=f=>{const {profiles,users,invites,...meta}=f;return {profiles,users,invites,meta}};
-  const MSG={'auth/invalid-credential':'E-mail ou mot de passe incorrect.','auth/wrong-password':'E-mail ou mot de passe incorrect.','auth/user-not-found':'E-mail ou mot de passe incorrect.','auth/invalid-login-credentials':'E-mail ou mot de passe incorrect.',
+  const MSG={'auth/invalid-credential':'E-mail ou mot de passe incorrect.',
     'auth/email-already-in-use':'Un compte existe déjà avec cet e-mail.','auth/weak-password':'Mot de passe trop court (6 caractères minimum).','auth/invalid-email':'Adresse e-mail invalide.',
-    'auth/too-many-requests':'Trop d’essais. Patientez quelques minutes puis réessayez.','auth/network-request-failed':'Pas de connexion Internet.','auth/requires-recent-login':'Par sécurité, déconnectez-vous puis reconnectez-vous avant de changer le mot de passe.',
-    'code-invalide':'Ce code d’invitation n’existe pas ou a déjà été utilisé.','code-autre-email':'Cette invitation est réservée à une autre adresse e-mail.','permission-denied':'Accès refusé.'};
+    'auth/too-many-requests':'Trop d’essais. Patientez quelques minutes puis réessayez.','auth/network-request-failed':'Pas de connexion Internet.',
+    'code-invalide':'Ce code d’invitation n’existe pas ou a déjà été utilisé.','code-autre-email':'Cette invitation est réservée à une autre adresse e-mail.','permission-denied':'Accès refusé.',
+    'non-connecte':'Votre session a expiré. Reconnectez-vous.','lien-expire':'Ce lien a expiré ou a déjà servi. Demandez-en un nouveau depuis l’écran de connexion.',
+    'reset-indisponible':'La réinitialisation par e-mail n’est pas encore activée. Demandez à la personne qui gère l’application.',
+    'fiche-trop-lourde':'Fiche trop lourde (photos ou documents) : allégez-la puis réessayez.','donnees-invalides':'Modification refusée par le serveur.',
+    'configuration':'Le serveur n’est pas encore configuré.','erreur-serveur':'Erreur du serveur. Réessayez dans un instant.'};
   const msg=e=>MSG[e&&(e.code||e.message)]||('Une erreur est survenue ('+((e&&(e.code||e.message))||'inconnue')+').');
-  function detach(){if(st){st.unsubs.forEach(u=>{try{u()}catch(e){}})}st=null}
+  async function api(path,body){
+    let res;
+    try{res=await fetch('/api/'+path,{method:body===undefined?'GET':'POST',headers:body===undefined?{}:{'Content-Type':'application/json'},
+      body:body===undefined?undefined:JSON.stringify(body),credentials:'same-origin',cache:'no-store'})}
+    catch(e){throw {code:'auth/network-request-failed',offline:true}}
+    let j={};try{j=await res.json()}catch(e){}
+    if(!res.ok)throw {code:j.error||('http-'+res.status),status:res.status};
+    return j;
+  }
+  const saveCache=()=>{try{if(st&&me)localStorage.setItem(CACHE,JSON.stringify({me,st:{...st}}))}catch(e){}};
+  const readCache=()=>{try{return JSON.parse(localStorage.getItem(CACHE)||'null')}catch(e){return null}};
+  const clearCache=()=>{try{localStorage.removeItem(CACHE)}catch(e){}};
   function build(){
-    const meta=JSON.parse(st.meta.json);
+    const meta=JSON.parse(st.meta);
     const profiles=Object.entries(st.profiles).sort((a,b)=>a[1].ord-b[1].ord).map(x=>JSON.parse(x[1].json));
     const users=Object.entries(st.members).sort((a,b)=>(a[1].at||0)-(b[1].at||0)).map(([uid,m])=>({uid,email:m.email,name:m.name,role:m.role,owner:!!m.owner}));
     const invites=Object.entries(st.invites).sort((a,b)=>(a[1].at||0)-(b[1].at||0)).map(([code,i])=>({id:code,code,email:i.email,role:i.role,status:'pending',date:i.date||''}));
     return {...meta,id:st.fid,profiles,users,invites};
   }
-  function attach(fid,uid){
-    detach();
-    const s=st={fid,uid,meta:null,profiles:{},members:{},invites:{},unsubs:[],ready:{meta:false,profiles:false,members:false}};
-    return new Promise((resolve,reject)=>{
-      let done=false;
-      const check=()=>{if(!done&&s.ready.meta&&s.ready.profiles&&s.ready.members){done=true;remoteCb(build());resolve()}};
-      const emit=()=>{if(done&&st===s)remoteCb(build())};
-      const fail=e=>{if(!done){done=true;reject(e)}else errCb(e)};
-      const root=fam(fid);
-      s.unsubs.push(root.onSnapshot(d=>{
-        if(!d.exists){fail({code:'permission-denied'});return}
-        if(d.metadata.hasPendingWrites&&s.meta)return;
-        const x=d.data();if(!s.meta||s.meta.json!==x.json){s.meta={json:x.json};s.ready.meta=true;check();emit()}else{s.ready.meta=true;check()}
-      },fail));
-      s.unsubs.push(root.collection('profiles').onSnapshot(q=>{
-        let ch=false;
-        q.docChanges().forEach(c=>{
-          if(c.type==='removed'){if(s.profiles[c.doc.id]){delete s.profiles[c.doc.id];ch=true}return}
-          if(c.doc.metadata.hasPendingWrites&&s.profiles[c.doc.id])return; /* écriture locale en cours : notre copie fait foi */
-          const x=c.doc.data(),cur=s.profiles[c.doc.id];
-          if(!cur||cur.json!==x.json||cur.ord!==x.ord){s.profiles[c.doc.id]={json:x.json,ord:x.ord};ch=true}
-        });
-        s.ready.profiles=true;check();if(ch)emit();
-      },fail));
-      s.unsubs.push(root.collection('members').onSnapshot(q=>{
-        let ch=false;
-        q.docChanges().forEach(c=>{
-          if(c.type==='removed'){if(s.members[c.doc.id]){delete s.members[c.doc.id];ch=true}return}
-          const x=c.doc.data(),cur=s.members[c.doc.id];
-          if(!cur||cur.role!==x.role||cur.name!==x.name||cur.email!==x.email){s.members[c.doc.id]=x;ch=true}
-        });
-        s.ready.members=true;check();if(ch)emit();
-      },fail));
-      s.unsubs.push(root.collection('invites').onSnapshot(q=>{
-        let ch=false;
-        q.docChanges().forEach(c=>{
-          if(c.type==='removed'){if(s.invites[c.doc.id]){delete s.invites[c.doc.id];ch=true}return}
-          if(!s.invites[c.doc.id]){s.invites[c.doc.id]=c.doc.data();ch=true}
-        });
-        if(ch)emit();
-      },()=>{/* seuls les administrateurs lisent les invitations */}));
-    });
+  function apply(s){
+    st.rev=s.rev;st.role=s.role;st.meta=s.meta;
+    st.profiles={};s.profiles.forEach(p=>{st.profiles[p.id]={json:p.json,ord:p.ord}});
+    st.members={};s.members.forEach(m=>{st.members[m.uid]=m});
+    st.invites={};s.invites.forEach(i=>{st.invites[i.code]=i});
+    saveCache();
   }
-  /* Envoie uniquement ce qui a changé (par fiche) : deux personnes peuvent modifier des fiches différentes en même temps. */
+  function detach(){clearTimeout(pollTimer);clearTimeout(timer);st=null;pending=null}
+  function sessionLost(){detach();me=null;clearCache();authCb(null)}
+  /* Rechargement : seulement si l'espace a changé sur le serveur et qu'aucune modification locale n'attend d'être envoyée */
+  async function poll(){
+    clearTimeout(pollTimer);
+    if(!st)return;
+    if(pending||inflight||polling){if(pending)flush();pollTimer=setTimeout(poll,POLL_MS);return}
+    const s0=st;polling=true;
+    try{
+      const r=await api('family?rev='+s0.rev);
+      if(st===s0&&!pending&&!inflight&&!r.unchanged){apply(r);remoteCb(build())}
+    }catch(e){
+      if(e.status===401){polling=false;sessionLost();return}
+      if(e.status===403||e.status===404)errCb({code:'permission-denied'});
+    }
+    polling=false;
+    if(st===s0)pollTimer=setTimeout(poll,document.visibilityState==='hidden'?POLL_MS*3:POLL_MS);
+  }
+  const wake=()=>{if(st){if(pending)flush();else poll()}};
+  window.addEventListener('online',wake);
+  window.addEventListener('focus',wake);
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')wake()});
+  async function attach(fid,uid){
+    detach();
+    const s=st={fid,uid,rev:0,role:'viewer',meta:'{}',profiles:{},members:{},invites:{}};
+    try{
+      const r=await api('family');
+      if(st!==s)return;
+      st.fid=r.id;apply(r);
+    }catch(e){
+      const c=readCache();
+      if(!e.offline||!c||!c.st||c.st.fid!==fid||c.st.uid!==uid)throw e;
+      Object.assign(s,c.st); /* hors connexion : dernière copie connue */
+    }
+    remoteCb(build());
+    pollTimer=setTimeout(poll,POLL_MS);
+  }
+  /* Différences entre l'état affiché et la dernière version confirmée par le serveur */
+  function diff(f,role){
+    const {profiles,users,invites,meta}=split(f);const b={};let n=0;
+    const mj=JSON.stringify(meta);if(mj!==st.meta){b.meta=mj;n++}
+    const set=[],del=[],seen={};
+    profiles.forEach((p,i)=>{seen[p.id]=1;const pj=JSON.stringify(p),cur=st.profiles[p.id];if(!cur||cur.json!==pj||cur.ord!==i)set.push({id:p.id,json:pj,ord:i})});
+    Object.keys(st.profiles).forEach(id=>{if(!seen[id])del.push(id)});
+    if(set.length||del.length){b.profiles={set,del};n++}
+    if(role==='admin'){
+      const roles=[];users.forEach(u=>{const m=st.members[u.uid];if(m&&u.uid!==st.uid&&m.role!==u.role)roles.push({uid:u.uid,role:u.role})});
+      if(roles.length){b.roles=roles;n++}
+      const add=[],dl=[],have={};
+      invites.forEach(i=>{have[i.code]=1;if(!st.invites[i.code])add.push({code:i.code,email:i.email,role:i.role,date:i.date})});
+      Object.keys(st.invites).forEach(c=>{if(!have[c])dl.push(c)});
+      if(add.length||dl.length){b.invites={add,del:dl};n++}
+    }
+    return n?b:null;
+  }
+  /* Envoie uniquement ce qui a changé (par fiche) : deux personnes peuvent modifier des fiches différentes en même temps.
+     Hors connexion, les modifications restent en attente et partent au retour du réseau. */
+  async function flush(){
+    clearTimeout(timer);
+    if(inflight||!pending||!st)return;
+    const s0=st,p0=pending,b=diff(p0.f,p0.role);
+    if(!b){if(pending===p0)pending=null;return}
+    inflight=true;
+    let refetch=false;
+    try{
+      const r=await api('family/push',b);
+      if(st!==s0)return;
+      if(b.meta)st.meta=b.meta;
+      if(b.profiles){b.profiles.set.forEach(p=>{st.profiles[p.id]={json:p.json,ord:p.ord}});b.profiles.del.forEach(id=>{delete st.profiles[id]})}
+      if(b.roles)b.roles.forEach(x=>{if(st.members[x.uid])st.members[x.uid]={...st.members[x.uid],role:x.role}});
+      if(b.invites){b.invites.add.forEach(i=>{st.invites[i.code]={...i,at:Date.now()}});b.invites.del.forEach(c=>{delete st.invites[c]})}
+      /* Si quelqu'un d'autre a modifié l'espace entre-temps, la version locale reste en retard : le prochain rechargement complète */
+      if(r.rev===st.rev+1)st.rev=r.rev;
+      saveCache();
+      if(pending===p0)pending=null;
+    }catch(e){
+      if(e.offline)return; /* reste en attente */
+      if(e.status===401){sessionLost();return}
+      /* Modification refusée : on revient à la version du serveur */
+      pending=null;refetch=true;errCb(e);
+      if(st===s0)st.rev=0;
+    }finally{inflight=false}
+    if(st!==s0)return;
+    if(pending&&!refetch)timer=setTimeout(flush,250);
+    else poll();
+  }
   function push(f,realRole){
     if(!st||!f||f.id!==st.fid||!realRole||realRole==='viewer')return;
-    const root=fam(st.fid),b=fs.batch();let n=0;const t=now();
-    const {profiles,users,invites,meta}=split(f);const mj=JSON.stringify(meta);
-    if(st.meta&&mj!==st.meta.json){b.update(root,{name:f.name,json:mj,updatedAt:t});st.meta.json=mj;n++}
-    const seen={};
-    profiles.forEach((p,i)=>{seen[p.id]=1;const pj=JSON.stringify(p),cur=st.profiles[p.id];
-      if(!cur||cur.json!==pj||cur.ord!==i){b.set(root.collection('profiles').doc(p.id),{json:pj,ord:i,updatedAt:t});st.profiles[p.id]={json:pj,ord:i};n++}});
-    Object.keys(st.profiles).forEach(id=>{if(!seen[id]){b.delete(root.collection('profiles').doc(id));delete st.profiles[id];n++}});
-    if(realRole==='admin'){
-      users.forEach(u=>{const m=st.members[u.uid];if(m&&u.uid!==st.uid&&m.role!==u.role){b.update(root.collection('members').doc(u.uid),{role:u.role});st.members[u.uid]={...m,role:u.role};n++}});
-      const have={};invites.forEach(i=>{have[i.code]=1;if(!st.invites[i.code]){
-        const d={fid:st.fid,email:i.email,role:i.role,date:i.date,at:t,by:st.uid};
-        b.set(col('invites').doc(i.code),d);b.set(root.collection('invites').doc(i.code),d);st.invites[i.code]=d;n++}});
-      Object.keys(st.invites).forEach(code=>{if(!have[code]){b.delete(col('invites').doc(code));b.delete(root.collection('invites').doc(code));delete st.invites[code];n++}});
-    }
-    if(n)b.commit().catch(e=>errCb(e));
+    pending={f,role:realRole};
+    clearTimeout(timer);timer=setTimeout(flush,300);
   }
-  async function userDoc(uid){try{const d=await col('users').doc(uid).get();return d.exists?d.data():{}}catch(e){return {}}}
+  const signedIn=u=>{me=u;authCb(u)};
   return {
-    msg,onRemote:f=>{remoteCb=f},onError:f=>{errCb=f},push,
-    watchAuth(cb){auth.onAuthStateChanged(async u=>{
-      if(!u){detach();cb(null);return}
-      const d=await userDoc(u.uid);
-      cb({uid:u.uid,email:(u.email||'').toLowerCase(),name:d.name||pendingName||u.displayName||(u.email||'').split('@')[0],familyId:d.familyId||null});
-    })},
-    async signUp(email,pw,name){pendingName=name;const r=await auth.createUserWithEmailAndPassword(email,pw);
-      try{await r.user.updateProfile({displayName:name})}catch(e){}
-      await col('users').doc(r.user.uid).set({email,name,familyId:null},{merge:true})},
-    signIn:(email,pw)=>auth.signInWithEmailAndPassword(email,pw),
-    reset:email=>auth.sendPasswordResetEmail(email),
-    async signOut(){detach();await auth.signOut()},
-    attach,
+    msg,onRemote:f=>{remoteCb=f},onError:f=>{errCb=f},push,attach,
+    watchAuth(cb){
+      authCb=u=>{if(!u){detach();cb(null);return}cb({uid:u.uid,email:u.email,name:u.name,familyId:u.familyId||null})};
+      api('me').then(signedIn,e=>{
+        const c=readCache();
+        if(e.offline&&c&&c.me){signedIn(c.me);return}
+        if(e.status===401)clearCache();
+        authCb(null);
+      });
+    },
+    async signUp(email,pw,name){signedIn(await api('auth/register',{email,password:pw,name}))},
+    async signIn(email,pw){signedIn(await api('auth/login',{email,password:pw}))},
+    reset:email=>api('auth/reset-request',{email}),
+    async confirmReset(token,pw){signedIn(await api('auth/reset',{token,password:pw}))},
+    async signOut(){detach();me=null;clearCache();try{await api('auth/logout',{})}catch(e){}authCb(null)},
     async createFamily(f,u){
-      const {profiles,meta}=split(f);const root=fam(f.id),b=fs.batch(),t=now();
-      b.set(root,{name:f.name,json:JSON.stringify(meta),ownerUid:u.uid,updatedAt:t});
-      b.set(root.collection('members').doc(u.uid),{email:u.email,name:u.name,role:'admin',owner:true,at:t});
-      profiles.forEach((p,i)=>b.set(root.collection('profiles').doc(p.id),{json:JSON.stringify(p),ord:i,updatedAt:t}));
-      b.set(col('users').doc(u.uid),{email:u.email,name:u.name,familyId:f.id},{merge:true});
-      await b.commit();await attach(f.id,u.uid);
+      const {profiles,meta}=split(f);
+      const r=await api('family',{meta:JSON.stringify(meta),name:u.name,profiles:profiles.map((p,i)=>({id:p.id,json:JSON.stringify(p),ord:i}))});
+      me={...me,familyId:r.familyId,name:u.name};
+      await attach(r.familyId,u.uid);return r.familyId;
     },
-    async join(codeRaw,u){
-      const code=(codeRaw||'').trim().toUpperCase();
-      let inv;try{inv=await col('invites').doc(code).get()}catch(e){throw {code:'code-invalide'}}
-      if(!inv.exists)throw {code:'code-invalide'};
-      const d=inv.data();if((d.email||'').toLowerCase()!==u.email)throw {code:'code-autre-email'};
-      const root=fam(d.fid),b=fs.batch();
-      b.set(root.collection('members').doc(u.uid),{email:u.email,name:u.name,role:d.role,at:now(),code});
-      b.set(col('users').doc(u.uid),{email:u.email,name:u.name,familyId:d.fid},{merge:true});
-      b.delete(col('invites').doc(code));b.delete(root.collection('invites').doc(code));
-      await b.commit();await attach(d.fid,u.uid);return d.fid;
+    async join(code,u){
+      const r=await api('family/join',{code:(code||'').trim().toUpperCase()});
+      me={...me,familyId:r.familyId};
+      await attach(r.familyId,u.uid);return r.familyId;
     },
-    async updateName(name){const u=auth.currentUser;if(!u)return;try{await u.updateProfile({displayName:name})}catch(e){}
-      await col('users').doc(u.uid).set({name},{merge:true});
-      if(st)try{await fam(st.fid).collection('members').doc(u.uid).update({name})}catch(e){}},
-    async changePassword(pw){const u=auth.currentUser;if(!u)throw {code:'auth/requires-recent-login'};await u.updatePassword(pw)}
+    async updateName(name){const u=await api('account',{name});me={...me,...u};if(st)poll()},
+    async changePassword(pw){await api('account',{password:pw})}
   };
 })():null;
 
@@ -756,7 +518,7 @@ function SumChips({p}){
 /* ---------- Authentification et création de famille ---------- */
 function AuthScreen(){
   const c=useC();
-  const [mode,setMode]=useState(JOIN?'register':'login');
+  const [mode,setMode]=useState(RESET&&CLOUD?'reset':JOIN?'register':'login');
   const [email,setEmail]=useState(CLOUD?'':'demo@exemple.fr');
   const [pw,setPw]=useState(CLOUD?'':'demo');
   const [name,setName]=useState('');
@@ -767,6 +529,12 @@ function AuthScreen(){
     e.preventDefault();
     const em=email.trim().toLowerCase();
     setErr('');setInfo('');
+    if(CLOUD&&mode==='reset'){
+      if(pw.length<6){setErr('Choisissez un mot de passe de 6 caractères minimum.');return}
+      setBusy(true);
+      try{await Cloud.confirmReset(RESET,pw);try{history.replaceState(null,'',location.pathname)}catch(x){}}catch(ex){setErr(Cloud.msg(ex))}
+      setBusy(false);return;
+    }
     if(CLOUD){
       if(!/^\S+@\S+\.\S+$/.test(em)||pw.length<6||(mode==='register'&&!name.trim())){setErr(mode==='register'?'Renseignez un prénom, un e-mail valide et un mot de passe de 6 caractères minimum.':'Renseignez votre e-mail et votre mot de passe.');return}
       setBusy(true);
@@ -798,14 +566,14 @@ function AuthScreen(){
       <div style=${{display:'flex',gap:8}}><${Ico} e="🐶" s=${34}/><${Ico} e="🐱" s=${34} k="s"/><${Ico} e="🐴" s=${34}/><${Ico} e="💉" s=${34} k="i"/><${Ico} e="📅" s=${34} k="w"/></div>
     </div>
     <form className="card pad form" onSubmit=${submit}>
-      <div className="seg"><button type="button" className=${mode==='login'?'on':''} onClick=${()=>{setMode('login');setErr('');setInfo('')}}>Connexion</button><button type="button" className=${mode==='register'?'on':''} onClick=${()=>{setMode('register');setErr('');setInfo('')}}>Créer un compte</button></div>
+      ${mode==='reset'?html`<div className="note">Choisissez votre nouveau mot de passe. Vous serez connecté(e) automatiquement.</div>`:html`<div className="seg"><button type="button" className=${mode==='login'?'on':''} onClick=${()=>{setMode('login');setErr('');setInfo('')}}>Connexion</button><button type="button" className=${mode==='register'?'on':''} onClick=${()=>{setMode('register');setErr('');setInfo('')}}>Créer un compte</button></div>`}
       ${JOIN&&mode==='register'?html`<div className="note">Vous avez reçu une invitation : créez votre compte avec <b>l’adresse e-mail à laquelle elle a été envoyée</b>, le code sera repris automatiquement.</div>`:null}
       ${mode==='register'?html`<${Field} label="Prénom"><input id="au-name" type="text" value=${name} onChange=${e=>setName(e.target.value)} autoComplete="given-name"/><//>`:null}
-      <${Field} label="Adresse e-mail"><input id="au-mail" type="email" value=${email} onChange=${e=>setEmail(e.target.value)} autoComplete="email" autoCapitalize="none"/><//>
-      <${Field} label="Mot de passe"><input id="au-pw" type="password" value=${pw} onChange=${e=>setPw(e.target.value)} autoComplete=${mode==='login'?'current-password':'new-password'}/><//>
+      ${mode==='reset'?null:html`<${Field} label="Adresse e-mail"><input id="au-mail" type="email" value=${email} onChange=${e=>setEmail(e.target.value)} autoComplete="email" autoCapitalize="none"/><//>`}
+      <${Field} label=${mode==='reset'?'Nouveau mot de passe':'Mot de passe'}><input id="au-pw" type="password" value=${pw} onChange=${e=>setPw(e.target.value)} autoComplete=${mode==='login'?'current-password':'new-password'}/><//>
       ${err?html`<div className="chip bad" style=${{whiteSpace:'normal',borderRadius:12}}>${err}</div>`:null}
       ${info?html`<div className="chip ok" style=${{whiteSpace:'normal',borderRadius:12}}>${info}</div>`:null}
-      <button className="btn block" type="submit" disabled=${busy}>${busy?'Patientez…':mode==='login'?'Se connecter':'Créer mon compte'}</button>
+      <button className="btn block" type="submit" disabled=${busy}>${busy?'Patientez…':mode==='login'?'Se connecter':mode==='reset'?'Enregistrer et me connecter':'Créer mon compte'}</button>
       ${CLOUD&&mode==='login'?html`<button type="button" className="btn ghost block" onClick=${forgot}>Mot de passe oublié ?</button>`:null}
     </form>
     ${CLOUD?html`<div className="note">Vos données sont enregistrées en ligne, chiffrées pendant le transfert, et visibles uniquement par les membres de votre famille.</div>`
@@ -832,8 +600,9 @@ function CreateFamilyScreen(){
       profiles:[mkProfile({type:'adult',name:first.trim(),avatar:{kind:'emoji',emoji:'🧑',bg:AV_BG[0],acc:''}})]};
     if(CLOUD){
       setBusy(true);setErr('');
-      try{await Cloud.createFamily(fam,{...who(),name:first.trim()})}catch(ex){setErr(Cloud.msg(ex));setBusy(false);return}
-      c.mut(d=>{d.session.familyId=fid;d.accounts[0].familyId=fid;d.accounts[0].name=first.trim()});
+      let realId;
+      try{realId=await Cloud.createFamily(fam,{...who(),name:first.trim()})}catch(ex){setErr(Cloud.msg(ex));setBusy(false);return}
+      c.mut(d=>{d.session.familyId=realId;d.accounts[0].familyId=realId;d.accounts[0].name=first.trim()});
     }else{
       c.mut(d=>{
         d.families[fid]=fam;
@@ -1740,7 +1509,7 @@ function App(){
   useEffect(()=>{
     if(!CLOUD)return;
     Cloud.onRemote(f=>setDb(p=>({...p,families:{...p.families,[f.id]:f}})));
-    Cloud.onError(e=>setSyncErr(e&&e.code==='permission-denied'?'Accès refusé : vos droits ont peut-être changé. Rechargez l’application.':'Synchronisation interrompue ('+((e&&(e.code||e.message))||'erreur')+'). Rechargez l’application.'));
+    Cloud.onError(e=>setSyncErr(e&&e.code==='permission-denied'?'Accès refusé : vos droits ont peut-être changé. Rechargez l’application.':Cloud.msg(e)+' La dernière version enregistrée a été rechargée.'));
     Cloud.watchAuth(async u=>{
       if(!u){setDb(p=>({...p,session:null,accounts:[],families:{}}));setStack([{n:'auth',p:{}}]);setLoading(false);return}
       setDb(p=>({...p,accounts:[{email:u.email,name:u.name,familyId:u.familyId}],session:{email:u.email,familyId:u.familyId,simRole:null,uid:u.uid}}));
@@ -1803,8 +1572,4 @@ function App(){
 }
 function Broken(){return html`<div className="phone"><div className="scroll" style=${{justifyContent:'center',alignItems:'center',textAlign:'center',gap:14}}><${Ico} e="📡" s=${64}/><h1 style=${{font:'800 22px/1.2 var(--font-d)'}}>Connexion nécessaire</h1><p className="muted" style=${{maxWidth:300}}>Les composants de synchronisation n’ont pas pu être chargés. Vérifiez votre connexion Internet puis rechargez.</p><button className="btn" onClick=${()=>location.reload()}>Recharger</button></div></div>`}
 ReactDOM.createRoot(document.getElementById('root')).render(CLOUD_BROKEN?html`<${Broken}/>`:html`<${App}/>`);
-
-
-</script>
-<script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}</script>
-</body></html>
+if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}))}
