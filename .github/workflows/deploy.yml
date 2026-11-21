@@ -53,3 +53,14 @@ jobs:
         run: npx wrangler d1 migrations apply carnet --remote
       - name: Déploiement du Worker
         run: npx wrangler deploy
+      # Première mise en ligne : crée le secret des sessions s'il n'existe pas (valeur aléatoire, jamais affichée).
+      # Il n'est jamais remplacé ensuite : le changer déconnecterait tout le monde.
+      - name: Secret des sessions
+        run: |
+          set -o pipefail
+          npx wrangler secret list > secrets.json
+          if grep -q '"SESSION_SECRET"' secrets.json; then
+            echo "SESSION_SECRET existe déjà."
+          else
+            openssl rand -base64 48 | tr -d '\n=' | npx wrangler secret put SESSION_SECRET
+          fi

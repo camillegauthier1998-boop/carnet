@@ -30,22 +30,16 @@ test/                 tests unitaires (vitest)
 
 ## Mise en ligne sur Cloudflare (une seule fois)
 
+Aucun outil à installer : la CI GitHub fait le déploiement.
+
 1. Crée un compte gratuit sur <https://dash.cloudflare.com/sign-up>.
-2. Dans ce dossier :
-   ```bash
-   npm install
-   npx wrangler login
-   npx wrangler d1 create carnet            # affiche un database_id
-   ```
-3. Copie le `database_id` affiché dans [wrangler.jsonc](wrangler.jsonc), à la place des zéros.
-4. Crée les tables et le secret des sessions, puis déploie :
-   ```bash
-   npm run db:remote
-   npx wrangler secret put SESSION_SECRET   # 32 caractères aléatoires ou plus
-   npm run deploy
-   ```
-   L'adresse s'affiche : `https://carnet.<ton-compte>.workers.dev`.
+2. Dans Cloudflare : **Storage & Databases → D1 SQL Database → Create**, nom `carnet`. Copie le **Database ID** affiché dans [wrangler.jsonc](wrangler.jsonc), à la place des zéros.
+3. Ajoute les secrets GitHub `CLOUDFLARE_API_TOKEN` et `CLOUDFLARE_ACCOUNT_ID` (voir « Déploiement continu » ci-dessous).
+4. Pousse sur `main` : la CI crée les tables, déploie et génère le secret des sessions (`SESSION_SECRET`).
+   L'adresse s'affiche dans Cloudflare → **Workers & Pages → carnet** : `https://carnet.<ton-compte>.workers.dev`.
 5. Sur le téléphone : ouvre l'adresse, puis « Sur l'écran d'accueil » (Safari) ou « Installer l'application » (Chrome).
+
+Avec Node.js installé, la même chose en ligne de commande : `npx wrangler d1 create carnet`, puis `npm run db:remote`, `npx wrangler secret put SESSION_SECRET` et `npm run deploy`.
 
 > Réseau d'entreprise : préfixer les commandes `npx`/`npm` par `NODE_OPTIONS=--use-system-ca`, sinon Node refuse le certificat du proxy.
 
@@ -82,7 +76,7 @@ L'envoi de l'e-mail de réinitialisation passe par [Resend](https://resend.com) 
 
 1. Crée un compte Resend et vérifie ton domaine d'envoi.
 2. Renseigne l'expéditeur dans [wrangler.jsonc](wrangler.jsonc), par exemple `"MAIL_FROM": "Carnet <carnet@ton-domaine.fr>"`.
-3. `npx wrangler secret put RESEND_API_KEY`
+3. Ajoute le secret `RESEND_API_KEY` dans Cloudflare → **Workers & Pages → carnet → Settings → Variables and Secrets** (type « Secret »).
 
 Le lien reçu est valable 1 heure et ne sert qu'une fois ; il déconnecte les autres appareils. Sans ces réglages, « Mot de passe oublié ? » explique que la réinitialisation n'est pas activée.
 
