@@ -751,7 +751,7 @@ function careInfos(p,today){
 /* ---------- Carnet de soins ---------- */
 function CareRow({p,c:care}){
   const c=useC();const i=careInfo(care,p.appointments,c.today);const cat=catOf(c.fam,care.category);
-  const go=()=>c.go('care',{pid:p.id,cid:care.id});
+  const go=()=>c.canEdit?c.openSheet('careEdit',{pid:p.id,cid:care.id}):c.go('care',{pid:p.id,cid:care.id});
   return html`<div className=${'row act rr'+(c.flash===care.id?' flash':'')} role="button" tabIndex="0" onClick=${go} onKeyDown=${e=>{if(e.key==='Enter')go()}}><${CatIco} cat=${cat}/><div className="grow"><b>${care.name}</b><small>${i.last?'Dernier : '+fmt(i.last):'Aucune réalisation'}${i.due?' · Prochain : '+fmt(i.due):''}</small>${i.status!=='ok'?html`<div style=${{marginTop:6}}><${Stat} i=${i}/></div>`:null}</div>${c.canEdit&&!care.archived?html`<button type="button" className="donebtn" aria-label=${'Fait aujourd’hui : '+care.name} title="Fait aujourd’hui" onClick=${e=>{e.stopPropagation();c.quickDone(p.id,care.id)}}><${Pic} e="✓"/></button>`:null}</div>`;
 }
 function BookScreen({p:q}){
@@ -1087,8 +1087,6 @@ function SettingsScreen(){
           <button className="row" onClick=${()=>c.go('theme')}><${Ico} e="🎨" k="s"/><div className="grow"><b>Thème de couleurs</b><small>${fam.theme.name||'Personnalisé'}</small></div><span className="go"><${Pic} e="›"/></span></button>
           <button className="row" onClick=${()=>c.go('access')}><${Ico} e="👪" k="i"/><div className="grow"><b>Membres et invitations</b><small>${fam.users.length} membre${fam.users.length>1?'s':''}${fam.invites.length?' · '+fam.invites.length+' invitation'+(fam.invites.length>1?'s':''):''}</small></div><span className="go"><${Pic} e="›"/></span></button>
           <button className="row" onClick=${()=>c.canAdmin?c.openSheet('famName'):c.toast('Réservé aux administrateurs')}><${Ico} e="🏠"/><div className="grow"><b>Nom de l’espace</b><small>${fam.name}</small></div><span className="go"><${Pic} e="›"/></span></button>
-          <button className="row" onClick=${()=>c.go('cats')}><${Ico} e="🏷️" k="w"/><div className="grow"><b>Types de soin</b><small>${allCats(fam).length} types · renommer, changer l’icône, supprimer</small></div><span className="go"><${Pic} e="›"/></span></button>
-          <button className="row" onClick=${()=>c.tab('contacts')}><${Ico} e="🥼" k="i"/><div className="grow"><b>Annuaire</b><small>${(fam.contacts||[]).length} fiche${(fam.contacts||[]).length>1?'s':''} : médecins, vétérinaires, établissements</small></div><span className="go"><${Pic} e="›"/></span></button>
         </div>
       <//>
       <${Section} title="Affichage">
@@ -1634,6 +1632,9 @@ function ContactScreen({p:q}){
 }
 function ContactSheet({p}){
   const c=useC();const ex=contactOf(c.fam,p.id);
+  /* Ouverte depuis la fenêtre d'un soin : on y revient à la fermeture (avec la fiche créée, le cas échéant) */
+  const savedId=useRef(null);
+  useEffect(()=>()=>{if(p.back)setTimeout(()=>c.openSheet(p.back.n,savedId.current?{...p.back.p,proId:savedId.current}:p.back.p),0)},[]);
   const [f,setF]=useState({kind:ex?ex.kind:(p.kind||'doctor'),name:ex?ex.name:'',specialty:ex?ex.specialty:'',phone:ex?ex.phone:'',email:ex?ex.email:'',address:ex?ex.address:'',notes:ex?ex.notes:''});
   const [err,setErr]=useState('');
   const dirty=useDirty(f);
@@ -1648,6 +1649,7 @@ function ContactSheet({p}){
       else fam.contacts.push({id,...body})});
     c.closeSheet();c.toast(ex?'Fiche modifiée':'Fiche ajoutée à l’annuaire');
     if(p.onSaved)p.onSaved(id);
+    savedId.current=id;
   };
   const ph={doctor:'Dr Claire Martin',vet:'Clinique vétérinaire des Tilleuls',place:'Hôpital, laboratoire, écurie…',pro:'Ostéopathe, maréchal-ferrant…'}[f.kind];
   return html`<${Sh} title=${ex?'Modifier la fiche':'Nouvelle fiche'} dirty=${dirty} onSave=${save}><div className="form">
@@ -1661,7 +1663,57 @@ function ContactSheet({p}){
     <${Btn} block onClick=${save}>${ex?'Enregistrer':'Ajouter à l’annuaire'}<//>
   </div><//>`;
 }
-const SHEETS={cat:CatSheet,freq:FreqSheet,contact:ContactSheet,avatar:AvatarSheet,account:AccountSheet,famName:FamNameSheet,confirm:ConfirmSheet,addMember:AddMemberSheet,profileMenu:ProfileMenuSheet,real:RealSheet,appt:ApptSheet,cal:CalSheet,weight:WeightSheet,treat:TreatSheet,invite:InviteSheet};
+/* ---------- Modification rapide d'un soin (depuis le carnet d'un membre) ---------- */
+function CareEditSheet({p}){
+  const c=useC();const pr=c.prof(p.pid);const care=pr&&pr.cares.find(x=>x.id===p.cid);
+  /* draft : saisie en cours, conservée pendant la création d'une fiche d'annuaire */
+  const dr=p.draft||{};
+  const [name,setName]=useState(dr.name!==undefined?dr.name:care?care.name:'');
+  const [cat,setCat]=useState(dr.cat||(care?care.category:'autre'));
+  const [proId,setProId]=useState(p.proId||(care&&contactOf(c.fam,care.proId)?care.proId:''));
+  const [pro,setPro]=useState(p.proId?'':dr.pro!==undefined?dr.pro:care&&!contactOf(c.fam,care.proId)?care.pro||'':'');
+  const [notes,setNotes]=useState(dr.notes!==undefined?dr.notes:care?care.notes||'':'');
+  const [v,setV]=useState(()=>dr.v||vFrom(care,c.fam.settings.apptDefaults));
+  const [del,setDel]=useState(false);
+  const [err,setErr]=useState('');
+  /* Modifié = différent du soin enregistré (et non de l'état d'ouverture, qui peut venir d'un brouillon) */
+  const orig=care?[care.name,care.category,contactOf(c.fam,care.proId)?care.proId:'',contactOf(c.fam,care.proId)?'':care.pro||'',care.notes||'',vFrom(care,c.fam.settings.apptDefaults)]:[];
+  const dirty=!!care&&JSON.stringify([name,cat,proId,pro,notes,v])!==JSON.stringify(orig);
+  if(!care)return null;
+  const i=careInfo(care,pr.appointments,c.today);
+  const cats=catsFor(c.fam,pr);
+  const contacts=(c.fam.contacts||[]).slice().sort((a,b)=>a.name.localeCompare(b.name,'fr'));
+  const save=()=>{
+    if(!name.trim()){setErr('Donnez un nom à ce soin.');return}
+    const freq=toFreq(v);const k=contactOf(c.fam,proId);const proTxt=k?k.name:pro.trim();
+    c.mut(d=>{const t=P(d,p.pid).cares.find(x=>x.id===p.cid);
+      const before=freqLabel(t.freq),after=freqLabel(freq);
+      if(before!==after){t.freqLog=t.freqLog||[];t.freqLog.push({date:c.today,from:before,to:after})}
+      Object.assign(t,{name:name.trim(),category:cat,proId:k?k.id:null,pro:proTxt,notes,freq,remind:toRem(v),apptReminders:toAr(v)})});
+    c.closeSheet();
+    c.toast(freq&&i.last?'Soin enregistré · prochaine échéance le '+fmt(addUnit(i.last,freq.n,freq.unit)):'Soin enregistré');
+  };
+  const remove=()=>{
+    c.mut(d=>{const pp=P(d,p.pid);pp.cares=pp.cares.filter(x=>x.id!==p.cid);pp.appointments=pp.appointments.filter(a=>a.careId!==p.cid)});
+    c.closeSheet();c.toast('« '+care.name+' » supprimé');
+  };
+  return html`<${Sh} title="Modifier le soin" dirty=${dirty} onSave=${save}><div className="form">
+    <button type="button" className="row act cehist" onClick=${()=>{c.closeSheet();c.go('care',{pid:p.pid,cid:care.id})}}><${CatIco} cat=${catOf(c.fam,care.category)}/><div className="grow"><b>${pr.name}</b><small>${care.realizations.length?care.realizations.length+' réalisation'+(care.realizations.length>1?'s':'')+' · dernière le '+fmt(i.last):'Aucune réalisation'}</small><span className="tapedit">Historique et rendez-vous</span></div><span className="go"><${Pic} e="›"/></span></button>
+    <${Field} label="Nom du soin"><input id="ce-name" type="text" value=${name} onChange=${e=>setName(e.target.value)}/><//>
+    <${Field} label="Type de soin"><select id="ce-cat" value=${cat} onChange=${e=>setCat(e.target.value)}>${cats.some(x=>x.id===cat)?null:html`<option value=${cat}>${catOf(c.fam,cat).label}</option>`}${cats.map(x=>html`<option key=${x.id} value=${x.id}>${x.label}</option>`)}</select><//>
+    <div className="fld"><div className="sech"><span className="lbl">Professionnel ou établissement</span><button type="button" className="link" onClick=${()=>c.openSheet('contact',{kind:TYPES[pr.type].human?'doctor':'vet',back:{n:'careEdit',p:{pid:p.pid,cid:p.cid,draft:{name,cat,pro,notes,v}}}})}>＋ Nouvelle fiche</button></div>
+      <select id="ce-proid" aria-label="Fiche de l’annuaire" value=${proId} onChange=${e=>setProId(e.target.value)}><option value="">Aucune fiche (saisie libre)</option>${contacts.map(k=>html`<option key=${k.id} value=${k.id}>${k.name}${k.specialty?' · '+k.specialty:''}</option>`)}</select>
+      ${!proId?html`<input id="ce-pro" type="text" aria-label="Nom du professionnel" placeholder="Nom (facultatif)" value=${pro} onChange=${e=>setPro(e.target.value)}/>`:null}</div>
+    <div className="lbl">Périodicité et rappels</div>
+    <${RemFields} v=${v} set=${setV} last=${i.last}/>
+    <${Field} label="Observations"><textarea id="ce-notes" value=${notes} onChange=${e=>setNotes(e.target.value)}></textarea><//>
+    ${err?html`<div className="chip bad" style=${{whiteSpace:'normal',borderRadius:12}}>${err}</div>`:null}
+    <${Btn} block onClick=${save}>Enregistrer<//>
+    ${del?html`<div className="note">« ${care.name} » et ${care.realizations.length?'ses '+care.realizations.length+' réalisation(s)':'ses rendez-vous'} seront définitivement supprimés.</div><${Btn} kind="danger" block onClick=${remove}>Confirmer la suppression<//><${Btn} kind="ghost" block onClick=${()=>setDel(false)}>Annuler<//>`
+      :html`<${Btn} kind="danger" block onClick=${()=>setDel(true)}>Supprimer ce soin<//>`}
+  </div><//>`;
+}
+const SHEETS={careEdit:CareEditSheet,cat:CatSheet,freq:FreqSheet,contact:ContactSheet,avatar:AvatarSheet,account:AccountSheet,famName:FamNameSheet,confirm:ConfirmSheet,addMember:AddMemberSheet,profileMenu:ProfileMenuSheet,real:RealSheet,appt:ApptSheet,cal:CalSheet,weight:WeightSheet,treat:TreatSheet,invite:InviteSheet};
 const SCREENS={auth:AuthScreen,createFamily:CreateFamilyScreen,home:HomeScreen,book:BookScreen,care:CareScreen,careForm:CareFormScreen,appts:ApptsScreen,treatments:TreatmentsScreen,weight:WeightScreen,access:AccessScreen,theme:ThemeScreen,settings:SettingsScreen,profileForm:ProfileFormScreen,cats:CatsScreen,contacts:ContactsScreen,contact:ContactScreen};
 const NAVS=[['home','🏠','Accueil'],['appts','📅','Agenda'],['contacts','🥼','Annuaire']];
 const NO_NAV=['auth','createFamily','careForm','profileForm'];

@@ -275,3 +275,5 @@ a.btn{text-decoration:none}
 .seg.scrollx{overflow-x:auto;scrollbar-width:none}
 .seg.scrollx::-webkit-scrollbar{display:none}
 .seg.scrollx button{flex:none;padding:8px 12px}
+.cehist{background:var(--bg);border-radius:16px}
+.cehist .tapedit{margin-top:2px}
