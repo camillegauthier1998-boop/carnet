@@ -1087,6 +1087,7 @@ function SettingsScreen(){
           <button className="row" onClick=${()=>c.go('theme')}><${Ico} e="🎨" k="s"/><div className="grow"><b>Thème de couleurs</b><small>${fam.theme.name||'Personnalisé'}</small></div><span className="go"><${Pic} e="›"/></span></button>
           <button className="row" onClick=${()=>c.go('access')}><${Ico} e="👪" k="i"/><div className="grow"><b>Membres et invitations</b><small>${fam.users.length} membre${fam.users.length>1?'s':''}${fam.invites.length?' · '+fam.invites.length+' invitation'+(fam.invites.length>1?'s':''):''}</small></div><span className="go"><${Pic} e="›"/></span></button>
           <button className="row" onClick=${()=>c.canAdmin?c.openSheet('famName'):c.toast('Réservé aux administrateurs')}><${Ico} e="🏠"/><div className="grow"><b>Nom de l’espace</b><small>${fam.name}</small></div><span className="go"><${Pic} e="›"/></span></button>
+          <button className="row" onClick=${()=>c.go('contacts')}><${Ico} e="🥼" k="i"/><div className="grow"><b>Annuaire</b><small>${(fam.contacts||[]).length} fiche${(fam.contacts||[]).length>1?'s':''} : médecins, vétérinaires, établissements</small></div><span className="go"><${Pic} e="›"/></span></button>
         </div>
       <//>
       <${Section} title="Affichage">
@@ -1594,7 +1595,7 @@ const contactCares=(fam,id)=>{const r=[];fam.profiles.forEach(p=>p.cares.forEach
 function ContactsScreen(){
   const c=useC();const [kind,setKind]=useState('all');
   const list=(c.fam.contacts||[]).filter(k=>kind==='all'||k.kind===kind).slice().sort((a,b)=>a.name.localeCompare(b.name,'fr'));
-  return html`<${Top} title="Annuaire" sub="Médecins, vétérinaires, établissements" gear=${true}/>
+  return html`<${Top} back=${true} title="Annuaire" sub="Médecins, vétérinaires, établissements"/>
     <div className="scroll pb">
       <div className="seg scrollx" role="group" aria-label="Filtrer l’annuaire">${[['all','Tout'],...Object.keys(KINDS).map(k=>[k,KINDS[k][2]])].map(x=>html`<button key=${x[0]} type="button" className=${kind===x[0]?'on':''} aria-pressed=${kind===x[0]} onClick=${()=>setKind(x[0])}>${x[1]}</button>`)}</div>
       ${list.length?html`<div className="card">${list.map(k=>html`<button key=${k.id} className="row" onClick=${()=>c.go('contact',{id:k.id})}><${Ico} e=${KINDS[k.kind][1]} k=${k.kind==='vet'?'s':k.kind==='place'?'w':'i'}/><div className="grow"><b>${k.name}</b><small>${[k.specialty||KINDS[k.kind][0],k.phone].filter(Boolean).join(' · ')}</small></div><span className="go"><${Pic} e="›"/></span></button>`)}</div>`
@@ -1715,7 +1716,7 @@ function CareEditSheet({p}){
 }
 const SHEETS={careEdit:CareEditSheet,cat:CatSheet,freq:FreqSheet,contact:ContactSheet,avatar:AvatarSheet,account:AccountSheet,famName:FamNameSheet,confirm:ConfirmSheet,addMember:AddMemberSheet,profileMenu:ProfileMenuSheet,real:RealSheet,appt:ApptSheet,cal:CalSheet,weight:WeightSheet,treat:TreatSheet,invite:InviteSheet};
 const SCREENS={auth:AuthScreen,createFamily:CreateFamilyScreen,home:HomeScreen,book:BookScreen,care:CareScreen,careForm:CareFormScreen,appts:ApptsScreen,treatments:TreatmentsScreen,weight:WeightScreen,access:AccessScreen,theme:ThemeScreen,settings:SettingsScreen,profileForm:ProfileFormScreen,cats:CatsScreen,contacts:ContactsScreen,contact:ContactScreen};
-const NAVS=[['home','🏠','Accueil'],['appts','📅','Agenda'],['contacts','🥼','Annuaire']];
+const NAVS=[['home','🏠','Accueil'],['appts','📅','Agenda']];
 const NO_NAV=['auth','createFamily','careForm','profileForm'];
 
 function Onboarding(){
