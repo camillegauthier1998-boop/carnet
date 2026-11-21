@@ -422,7 +422,7 @@ const Cloud=CLOUD?(()=>{
   }
   const signedIn=u=>{me=u;authCb(u)};
   return {
-    msg,onRemote:f=>{remoteCb=f},onError:f=>{errCb=f},push,attach,
+    msg,onRemote:f=>{remoteCb=f},onError:f=>{errCb=f},push,attach,api,
     watchAuth(cb){
       authCb=u=>{if(!u){detach();cb(null);return}cb({uid:u.uid,email:u.email,name:u.name,familyId:u.familyId||null})};
       api('me').then(signedIn,e=>{
@@ -662,7 +662,7 @@ function RemRow({r}){
     if(i.status==='overdue'){ico='⚠️';k='b';sub='En retard de '+diffDays(c.today,i.due)+' j';act=['Noter le RDV',()=>c.openSheet('appt',{pid:p.id,cid:r.c.id})]}
     else if(i.status==='remind'){ico='🔔';k='w';sub='À prévoir avant le '+fmtShort(i.due);act=['Prendre RDV',()=>c.setPending(p.id,r.c.id,true)]}
     else if(i.status==='pending'){ico='📝';k='i';sub='RDV à fixer avant le '+fmtShort(i.due);act=['Noter le RDV',()=>c.openSheet('appt',{pid:p.id,cid:r.c.id})]}
-    else{ico='✅';k='g';sub='RDV du '+fmtShort(i.appt.date)+' passé';act=['Confirmer',()=>c.openSheet('real',{pid:p.id,cid:r.c.id,aid:i.appt.id,date:i.appt.date})]}
+    else{ico='✅';k='g';sub='RDV du '+fmtShort(i.appt.date)+' passé';act=['Fait le…',()=>c.openSheet('real',{pid:p.id,cid:r.c.id,aid:i.appt.id,date:i.appt.date})]}
   }else if(r.kind==='appt'){
     ico='📅';k='i';title=apptTitle(r.a,p)+' · '+p.name;go=()=>c.tab('appts');
     sub=(r.days===0?'Aujourd’hui':r.days===1?'Demain':'Dans '+r.days+' jours')+(r.a.time?' à '+r.a.time:'');
@@ -678,7 +678,16 @@ function upcomingDues(fam,today){
     if(i.status==='ok'&&i.due&&i.due>=today)out.push({p,c:care,i})})});
   return out.sort((a,b)=>a.i.due<b.i.due?-1:1);
 }
-function inLabel(d,today){const n=diffDays(d,today);return n<=0?'aujourd’hui':n<45?'dans '+n+' j':n<540?'dans '+Math.round(n/30.4)+' mois':'dans '+(n/365).toFixed(1).replace('.',',')+' ans'}
+/* « dans 12 jours », « dans 3 mois », « dans 1 an et 7 mois » */
+function inLabel(d,today){
+  const n=diffDays(d,today);
+  if(n<=0)return 'aujourd’hui';if(n===1)return 'demain';if(n<45)return 'dans '+n+' jours';
+  const a=parse(today),b=parse(d);let m=(b.getFullYear()-a.getFullYear())*12+b.getMonth()-a.getMonth();if(b.getDate()<a.getDate())m--;
+  if(m<12)return 'dans '+Math.max(1,m)+' mois';
+  const y=Math.floor(m/12),r=m%12;return 'dans '+y+' an'+(y>1?'s':'')+(r?' et '+r+' mois':'');
+}
+const monthLabel=iso=>cap(parse(iso).toLocaleDateString('fr-FR',{month:'long',year:'numeric'}));
+function byMonth(items,dateOf){const g=[];items.forEach(x=>{const k=dateOf(x).slice(0,7);let l=g[g.length-1];if(!l||l.k!==k){l={k,label:monthLabel(dateOf(x)),items:[]};g.push(l)}l.items.push(x)});return g}
 function allDues(fam,today){
   const out=[];
   fam.profiles.forEach(p=>{if(p.archived)return;p.cares.forEach(care=>{if(care.archived)return;const i=careInfo(care,p.appointments,today);
@@ -736,12 +745,14 @@ function HomeScreen(){
 }
 
 /* ---------- Profil ---------- */
-function infoRows(p){
+function infoRows(p,fam){
   const i=p.info||{},t=TYPES[p.type],r=[];
   const add=(l,v)=>{if(v)r.push([l,v])};
   const nb=p.birth?(p.birthApprox?'≈ '+parse(p.birth).getFullYear()+' (approximatif)':fmt(p.birth)):'';
-  if(t.human){add('Naissance',nb);add('Sexe',p.sex);add('Groupe sanguin',i.blood);add('Allergies',i.allergies);add('Médecin traitant',i.doctor)}
-  else{add('Espèce',i.species||t.species);add('Race',i.breed);add('Robe',i.coat);add('Sexe',p.sex);add('Naissance',nb);add('Taille',i.size);add('N° de puce',i.chip);add('Stérilisé(e) / castré(e)',i.neutered?'Oui':'');add('Vétérinaire',i.vet)}
+  /* Médecin ou vétérinaire relié à l'annuaire : affiché à part, avec ses coordonnées */
+  const linked=fam&&contactOf(fam,t.human?i.doctorId:i.vetId);
+  if(t.human){add('Naissance',nb);add('Sexe',p.sex);add('Groupe sanguin',i.blood);add('Allergies',i.allergies);if(!linked)add('Médecin traitant',i.doctor)}
+  else{add('Espèce',i.species||t.species);add('Race',i.breed);add('Robe',i.coat);add('Sexe',p.sex);add('Naissance',nb);add('Taille',i.size);add('N° de puce',i.chip);add('Stérilisé(e) / castré(e)',i.neutered?'Oui':'');if(!linked)add('Vétérinaire',i.vet)}
   return r;
 }
 function careInfos(p,today){
@@ -752,7 +763,7 @@ function careInfos(p,today){
 function CareRow({p,c:care}){
   const c=useC();const i=careInfo(care,p.appointments,c.today);const cat=catOf(c.fam,care.category);
   const go=()=>c.canEdit?c.openSheet('careEdit',{pid:p.id,cid:care.id}):c.go('care',{pid:p.id,cid:care.id});
-  return html`<div className=${'row act rr'+(c.flash===care.id?' flash':'')} role="button" tabIndex="0" onClick=${go} onKeyDown=${e=>{if(e.key==='Enter')go()}}><${CatIco} cat=${cat}/><div className="grow"><b>${care.name}</b><small>${i.last?'Dernier : '+fmt(i.last):'Aucune réalisation'}${i.due?' · Prochain : '+fmt(i.due):''}</small>${i.status!=='ok'?html`<div style=${{marginTop:6}}><${Stat} i=${i}/></div>`:null}</div>${c.canEdit&&!care.archived?html`<button type="button" className="donebtn" aria-label=${'Fait aujourd’hui : '+care.name} title="Fait aujourd’hui" onClick=${e=>{e.stopPropagation();c.quickDone(p.id,care.id)}}><${Pic} e="✓"/></button>`:null}</div>`;
+  return html`<div className=${'row act rr'+(c.flash===care.id?' flash':'')} role="button" tabIndex="0" onClick=${go} onKeyDown=${e=>{if(e.key==='Enter')go()}}><${CatIco} cat=${cat}/><div className="grow"><b>${care.name}</b><small>${i.last?'Dernier : '+fmt(i.last):'Jamais fait'}${i.due?' · Prochain : '+fmt(i.due):''}</small>${i.status!=='ok'?html`<div style=${{marginTop:6}}><${Stat} i=${i}/></div>`:null}</div>${c.canEdit&&!care.archived?html`<button type="button" className="donebtn" aria-label=${'Fait aujourd’hui : '+care.name} title="Fait aujourd’hui" onClick=${e=>{e.stopPropagation();c.quickDone(p.id,care.id)}}><${Pic} e="✓"/></button>`:null}</div>`;
 }
 function BookScreen({p:q}){
   const c=useC();const p=c.prof(q.pid);
@@ -764,10 +775,12 @@ function BookScreen({p:q}){
   const s=summary(p,c.today);
   const lw=lastWeight(p);const showW=!TYPES[p.type].human||lw;
   const active=(p.treatments||[]).filter(t=>t.status==='active');
-  const rows=infoRows(p).filter(x=>x[0]!=='Espèce');
+  const rows=infoRows(p,c.fam).filter(x=>x[0]!=='Espèce');
+  const pk=contactOf(c.fam,TYPES[p.type].human?(p.info||{}).doctorId:(p.info||{}).vetId);
   return html`<${Top} back=${true} lead=${html`<${Avatar} p=${p} size=${44}/>`} title=${p.name} sub=${subtitle(p,c.today)} right=${c.canEdit?html`<button className="iconbtn" aria-label="Plus d’actions" onClick=${()=>c.openSheet('profileMenu',{pid:p.id})}><${Pic} e="⋯"/></button>`:null}/>
     <div className="scroll pb">
       ${(rows.length||p.notes)?html`<div className="card pad"><dl className="kv">${rows.map(x=>html`<${React.Fragment} key=${x[0]}><dt>${x[0]}</dt><dd>${x[1]}</dd><//>`)}${p.notes?html`<dt>Notes</dt><dd>${p.notes}</dd>`:null}</dl></div>`:null}
+      ${pk?html`<div className="card"><div className="row"><button type="button" className="grow linkrow" onClick=${()=>c.go('contact',{id:pk.id})}><small>${TYPES[p.type].human?'Médecin traitant':'Vétérinaire'}</small><b>${pk.name}</b>${pk.specialty?html`<small>${pk.specialty}</small>`:null}</button>${pk.phone?html`<a className="btn sm soft" href=${telHref(pk.phone)} aria-label=${'Appeler '+pk.name}>📞 Appeler</a>`:null}</div></div>`:null}
       <div className="scs">
         ${showW?html`<button className="sc" onClick=${()=>c.go('weight',{pid:p.id})}><${Ico} e="⚖️" k="s" s=${38}/>Poids<small>${lw?kgFmt(lw.kg):'Ajouter'}</small></button>`:null}
         <button className="sc" onClick=${()=>c.go('treatments',{pid:p.id})}><${Ico} e="💊" k="g" s=${38}/>Traitements<small>${active.length?active.length+' en cours':'Aucun'}</small></button>
@@ -791,11 +804,11 @@ function CareScreen({p:q}){
     booked:i.appt?'Rendez-vous le '+fmt(i.appt.date)+(i.appt.time?' à '+i.appt.time:'')+'.':'',
     toConfirm:i.appt?'Le rendez-vous du '+fmt(i.appt.date)+' est passé. Confirmez qu’il a eu lieu.':'',
     free:'Fréquence non fixe : aucune échéance calculée.',
-    new:'Aucune réalisation enregistrée pour le moment.',
+    new:'Pas encore fait : touchez « Fait le… » pour noter la première fois.',
     stopped:'Suivi arrêté. L’historique reste consultable.'
   }[i.status];
   const k={ok:'g',remind:'w',pending:'i',overdue:'b',booked:'i',toConfirm:'w',free:'',new:'',stopped:''}[i.status];
-  const ask=()=>c.openSheet('confirm',{title:'Supprimer ce soin ?',text:'« '+care.name+' » et ses '+care.realizations.length+' réalisation(s) seront définitivement supprimés. Pour garder l’historique, arrêtez plutôt le suivi.',label:'Supprimer définitivement',danger:true,
+  const ask=()=>c.openSheet('confirm',{title:'Supprimer ce soin ?',text:'« '+care.name+' » et son historique ('+care.realizations.length+' fois) seront définitivement supprimés. Pour garder l’historique, arrêtez plutôt le suivi.',label:'Supprimer définitivement',danger:true,
     run:()=>{c.mut(d=>{const pr=P(d,p.id);pr.cares=pr.cares.filter(x=>x.id!==care.id);pr.appointments=pr.appointments.filter(a=>a.careId!==care.id)});c.back();c.toast('Soin supprimé')},
     altLabel:care.archived?null:'Arrêter le suivi (garder l’historique)',alt:()=>{c.mut(d=>{P(d,p.id).cares.find(x=>x.id===care.id).archived=true});c.toast('Suivi arrêté')}});
   return html`<${Top} back=${true} title=${care.name} sub=${p.name+' · '+cat.label}/>
@@ -804,9 +817,9 @@ function CareScreen({p:q}){
         ${c.canEdit&&!care.archived?html`<div className="btns">
           ${i.status==='remind'?html`<${Btn} onClick=${()=>c.setPending(p.id,care.id,true)}>Je dois prendre RDV<//>`:null}
           ${['remind','pending','overdue','new','free','ok'].includes(i.status)?html`<${Btn} kind=${i.status==='remind'?'soft':(['pending','overdue'].includes(i.status)?'':'soft')} onClick=${()=>c.openSheet('appt',{pid:p.id,cid:care.id})}>Noter un RDV<//>`:null}
-          ${i.status==='booked'?html`<${Btn} onClick=${()=>c.openSheet('real',{pid:p.id,cid:care.id,aid:i.appt.id,date:i.appt.date})}>Marquer comme réalisé<//><${Btn} kind="soft" onClick=${()=>c.openSheet('cal',{pid:p.id,aid:i.appt.id})}>Agenda Apple<//>`:null}
-          ${i.status==='toConfirm'?html`<${Btn} onClick=${()=>c.openSheet('real',{pid:p.id,cid:care.id,aid:i.appt.id,date:i.appt.date})}>Confirmer la réalisation<//><${Btn} kind="soft" onClick=${()=>c.openSheet('appt',{pid:p.id,aid:i.appt.id})}>Reprogrammer<//>`:null}
-          ${!['booked','toConfirm'].includes(i.status)?html`<${Btn} kind=${['pending','overdue'].includes(i.status)?'soft':''} onClick=${()=>c.openSheet('real',{pid:p.id,cid:care.id})}>Ajouter une réalisation<//>`:null}
+          ${i.status==='booked'?html`<${Btn} onClick=${()=>c.openSheet('real',{pid:p.id,cid:care.id,aid:i.appt.id,date:i.appt.date})}>Fait le…<//><${Btn} kind="soft" onClick=${()=>c.openSheet('cal',{})}>Agenda du téléphone<//>`:null}
+          ${i.status==='toConfirm'?html`<${Btn} onClick=${()=>c.openSheet('real',{pid:p.id,cid:care.id,aid:i.appt.id,date:i.appt.date})}>Fait le…<//><${Btn} kind="soft" onClick=${()=>c.openSheet('appt',{pid:p.id,aid:i.appt.id})}>Reprogrammer<//>`:null}
+          ${!['booked','toConfirm'].includes(i.status)?html`<${Btn} kind=${['pending','overdue'].includes(i.status)?'soft':''} onClick=${()=>c.openSheet('real',{pid:p.id,cid:care.id})}>Fait le…<//>`:null}
         </div>`:null}
       </div>
       <${Section} title="Réglages du soin" right=${c.canEdit?html`<button className="link" onClick=${()=>c.go('careForm',{pid:p.id,cid:care.id})}>Modifier le soin</button>`:null}>
@@ -824,7 +837,7 @@ function CareScreen({p:q}){
       <//>
       <${Section} title=${'Historique ('+i.reals.length+')'}>
         <div className="card">${i.reals.length?i.reals.map(r=>html`<button key=${r.id} className="row" onClick=${()=>c.canEdit&&c.openSheet('real',{pid:p.id,cid:care.id,rid:r.id})}><span className="dateblk"><b>${parse(r.date).getDate()}</b><span>${parse(r.date).toLocaleDateString('fr-FR',{month:'short'}).replace('.','')}</span></span><div className="grow"><b>${fmt(r.date)}</b><small>${[r.note,r.pro,r.docs&&r.docs.length?'📎 '+r.docs.length+' document'+(r.docs.length>1?'s':''):''].filter(Boolean).join(' · ')||'Sans observation'}</small></div></button>`)
-          :html`<${Empty} e="🕘" title="Pas encore d’historique" text="Chaque réalisation s’ajoutera ici sans effacer les précédentes."/>`}</div>
+          :html`<${Empty} e="🕘" title="Pas encore d’historique" text="Chaque « fait le » s’ajoutera ici, sans effacer les précédents."/>`}</div>
         ${(care.freqLog||[]).length?html`<div className="note">${care.freqLog.slice().reverse().map((l,n)=>html`<div key=${n}>Le ${fmt(l.date)} : ${l.from} → ${l.to}</div>`)}</div>`:null}
       <//>
       ${c.canEdit?html`<div className="btns">
@@ -846,7 +859,7 @@ function RemFields({v,set,last}){
   const due=fr&&last?addUnit(last,fr.n,fr.unit):null;
   const setAr=(n,k,x)=>set({...v,ar:v.ar.map((r,j)=>j===n?{...r,[k]:x}:r)});
   return html`<div className="form">
-    <div className="swrow"><div><b style=${{font:'700 15px var(--font-d)'}}>Fréquence fixe</b><div className="muted">Calcule l’échéance suivante après chaque réalisation</div></div><${Switch} on=${v.freqOn} set=${x=>u('freqOn',x)} label="Fréquence fixe"/></div>
+    <div className="swrow"><div><b style=${{font:'700 15px var(--font-d)'}}>Fréquence fixe</b><div className="muted">Calcule l’échéance suivante chaque fois que c’est fait</div></div><${Switch} on=${v.freqOn} set=${x=>u('freqOn',x)} label="Fréquence fixe"/></div>
     ${v.freqOn?html`<div className="inl"><span>Tous les</span><input id="rf-n" className="num" type="number" min="1" inputMode="numeric" value=${v.fn} onChange=${e=>u('fn',e.target.value)} aria-label="Nombre"/><select id="rf-u" value=${v.fu} onChange=${e=>u('fu',e.target.value)} aria-label="Unité">${UNITS.map(x=>html`<option key=${x[0]} value=${x[0]}>${x[1]}</option>`)}</select></div>`:null}
     ${v.freqOn?html`<div className="swrow"><div><b style=${{font:'700 15px var(--font-d)'}}>Rappel pour prendre RDV</b><div className="muted">Délai propre à ce soin</div></div><${Switch} on=${v.remOn} set=${x=>u('remOn',x)} label="Rappel anticipé"/></div>`:html`<div className="note">Sans fréquence fixe, aucune échéance n’est calculée : pas de rappel de renouvellement.</div>`}
     ${v.freqOn&&v.remOn?html`<div className="inl"><span>Me prévenir</span><input id="rf-rn" className="num" type="number" min="0" inputMode="numeric" value=${v.rn} onChange=${e=>u('rn',e.target.value)} aria-label="Délai du rappel"/><select id="rf-ru" value=${v.ru} onChange=${e=>u('ru',e.target.value)} aria-label="Unité du rappel">${UNITS.map(x=>html`<option key=${x[0]} value=${x[0]}>${x[1]}</option>`)}</select><span>avant l’échéance</span></div>`:null}
@@ -902,7 +915,7 @@ function CareFormScreen({p:q}){
         <div className="fld"><div className="sech"><span className="lbl">Professionnel ou établissement</span><button type="button" className="link" onClick=${()=>c.openSheet('contact',{kind:TYPES[p.type].human?'doctor':'vet',onSaved:id=>setProId(id)})}>＋ Nouvelle fiche</button></div>
           <select id="cf-proid" aria-label="Fiche de l’annuaire" value=${proId} onChange=${e=>setProId(e.target.value)}><option value="">Aucune fiche (saisie libre)</option>${contacts.map(k=>html`<option key=${k.id} value=${k.id}>${k.name}${k.specialty?' · '+k.specialty:''}</option>`)}</select>
           ${!proId?html`<input id="cf-pro" type="text" aria-label="Nom du professionnel" placeholder="Nom (facultatif)" value=${pro} onChange=${e=>setPro(e.target.value)}/>`:null}</div>
-        ${!ex?html`<${Field} label="Dernière réalisation" hint="Facultatif. Crée la première ligne de l’historique."><input id="cf-last" type="date" max=${c.today} value=${last} onChange=${e=>setLast(e.target.value)}/><//>`:null}
+        ${!ex?html`<${Field} label="Dernière fois fait le" hint="Facultatif. Crée la première ligne de l’historique."><input id="cf-last" type="date" max=${c.today} value=${last} onChange=${e=>setLast(e.target.value)}/><//>`:null}
         <${Field} label="Observations"><textarea id="cf-notes" value=${notes} onChange=${e=>setNotes(e.target.value)}></textarea><//>
       </div>
       <${Section} title="Périodicité et rappels"><div className="card pad"><${RemFields} v=${v} set=${setV} last=${ex?careInfo(ex,p.appointments,c.today).last:last}/></div><//>
@@ -914,26 +927,32 @@ function CareFormScreen({p:q}){
 /* ---------- Rendez-vous ---------- */
 function ApptsScreen(){
   const c=useC();const {fam,today}=c;
-  const list=upcomingAppts(fam,today);
-  const dues=allDues(fam,today);
+  const [who,setWho]=useState('all');
+  const act=fam.profiles.filter(p=>!p.archived);
+  const keep=x=>who==='all'||x.p.id===who;
+  const list=upcomingAppts(fam,today).filter(keep);
+  const dues=allDues(fam,today).filter(keep);
+  const late=dues.filter(x=>x.i.due<today),next=dues.filter(x=>x.i.due>=today);
   const cancel=(p,a)=>{c.mut(d=>{P(d,p.id).appointments.find(x=>x.id===a.id).status='cancelled'});c.toast('Rendez-vous annulé')};
   const ttl=(e,t)=>html`<span style=${{display:'inline-flex',alignItems:'center',gap:8}}><${Pic} e=${e}/>${t}</span>`;
   return html`<${Top} title="Agenda" sub="Rendez-vous et échéances" gear=${true} right=${c.canEdit?html`<${Btn} sm onClick=${()=>c.openSheet('appt',{})}><${Pic} e="＋"/> RDV<//>`:null}/>
     <div className="scroll pb">
-      <${Section} title=${ttl('📅','Rendez-vous programmés')}>
-        ${list.length?html`<div style=${{display:'flex',flexDirection:'column',gap:10}}>${list.map(({p,a})=>{
+      ${act.length>1?html`<div className="seg scrollx" role="group" aria-label="Filtrer par membre">${[['all','Toute la famille'],...act.map(p=>[p.id,p.name])].map(x=>html`<button key=${x[0]} type="button" className=${who===x[0]?'on':''} aria-pressed=${who===x[0]} onClick=${()=>setWho(x[0])}>${x[1]}</button>`)}</div>`:null}
+      <${Section} title=${ttl('📅','Rendez-vous programmés')} right=${CLOUD?html`<button className="link" onClick=${()=>c.openSheet('cal',{})}>Agenda du téléphone</button>`:null}>
+        ${list.length?byMonth(list,x=>x.a.date).map(g=>html`<div key=${g.k} className="mgrp"><div className="mh">${g.label}</div>${g.items.map(({p,a})=>{
           const past=a.date<today;
           return html`<div key=${a.id} className="card"><${ApptRow} p=${p} a=${a} onClick=${()=>c.canEdit&&c.openSheet('appt',{pid:p.id,aid:a.id})}/>
             <div className="row" style=${{paddingTop:0,flexWrap:'wrap'}}>
-              <div className="chips">${(a.reminders||[]).map((r,n)=>{const fire=addUnit(a.date,-r.days,'d');return html`<${Chip} key=${n} k=${!r.on?'mute':fire<=today?'warn':'pri'}>${r.on?html`<${Pic} e="🔔"/>`:null} ${r.on?'J-'+r.days+(fire<=today?' envoyé':' le '+fmtShort(fire)):'J-'+r.days+' désactivé'}<//>`})}${past?html`<${Chip} k="warn">Passé<//>`:null}</div>
+              <div className="chips">${(a.reminders||[]).map((r,n)=>{const fire=addUnit(a.date,-r.days,'d');return html`<${Chip} key=${n} k=${!r.on?'mute':fire<=today?'warn':'pri'}>${r.on?html`<${Pic} e="🔔"/>`:null} ${r.on?'J-'+r.days+(fire<=today?' passé':' le '+fmtShort(fire)):'J-'+r.days+' désactivé'}<//>`})}${past?html`<${Chip} k="warn">Passé<//>`:html`<${Chip} k="mute">${inLabel(a.date,today)}<//>`}</div>
             </div>
-            ${c.canEdit?html`<div className="row" style=${{paddingTop:0}}><div className="btns"><${Btn} sm kind="soft" onClick=${()=>c.openSheet('cal',{pid:p.id,aid:a.id})}><${Pic} e="📅"/> ${a.inCalendar?'Dans l’agenda':'Agenda Apple'}<//>${a.careId||a.title?html`<${Btn} sm onClick=${()=>a.careId?c.openSheet('real',{pid:p.id,cid:a.careId,aid:a.id,date:a.date}):cancel(p,a)}><${Pic} e="✅"/> ${a.careId?'Réalisé':'Terminer'}<//>`:null}<${Btn} sm kind="ghost" onClick=${()=>cancel(p,a)}>Annuler<//></div></div>`:null}
-          </div>`})}</div>`
+            ${c.canEdit?html`<div className="row" style=${{paddingTop:0}}><div className="btns">${a.careId||a.title?html`<${Btn} sm onClick=${()=>a.careId?c.openSheet('real',{pid:p.id,cid:a.careId,aid:a.id,date:a.date}):cancel(p,a)}><${Pic} e="✅"/> ${a.careId?'Fait le…':'Terminer'}<//>`:null}<${Btn} sm kind="ghost" onClick=${()=>cancel(p,a)}>Annuler le RDV<//></div></div>`:null}
+          </div>`})}</div>`)
           :html`<div className="card"><${Empty} e="📅" title="Aucun rendez-vous programmé" text="Notez un rendez-vous : deux rappels indépendants vous préviendront avant la date."/></div>`}
       <//>
       <${Section} title=${ttl('🕐','Échéances des soins')}>
-        ${dues.length?html`<div className="card">${dues.map(x=>html`<${DueRow} key=${x.p.id+x.c.id} x=${x}/>`)}</div>`
-          :html`<div className="card"><${Empty} e="🌿" title="Aucune échéance" text="Elles apparaîtront dès qu’un soin a une fréquence."/></div>`}
+        ${late.length?html`<div className="mgrp"><div className="mh late">En retard</div><div className="card">${late.map(x=>html`<${DueRow} key=${x.p.id+x.c.id} x=${x}/>`)}</div></div>`:null}
+        ${byMonth(next,x=>x.i.due).map(g=>html`<div key=${g.k} className="mgrp"><div className="mh">${g.label}</div><div className="card">${g.items.map(x=>html`<${DueRow} key=${x.p.id+x.c.id} x=${x}/>`)}</div></div>`)}
+        ${!dues.length?html`<div className="card"><${Empty} e="🌿" title="Aucune échéance" text=${who==='all'?'Elles apparaîtront dès qu’un soin a une fréquence.':'Aucune échéance pour ce membre.'}/></div>`:null}
       <//>
     </div>`;
 }
@@ -1074,6 +1093,46 @@ function ThemeScreen(){
 }
 
 /* ---------- Réglages ---------- */
+/* ---------- Notifications sur ce téléphone ---------- */
+const u8=b=>{const s=atob(b.replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from(s,ch=>ch.charCodeAt(0))};
+const IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const STANDALONE=(()=>{try{return matchMedia('(display-mode: standalone)').matches||navigator.standalone===true}catch(e){return false}})();
+function NotifCard(){
+  const c=useC();
+  const ok='serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;
+  const [on,setOn]=useState(false);const [busy,setBusy]=useState(false);const [err,setErr]=useState('');
+  useEffect(()=>{if(!CLOUD||!ok)return;navigator.serviceWorker.ready.then(r=>r.pushManager.getSubscription()).then(sub=>{
+    if(sub){setOn(true);Cloud.api('push/subscribe',sub.toJSON()).catch(()=>{})}}).catch(()=>{})},[]);
+  const enable=async()=>{
+    setBusy(true);setErr('');
+    try{
+      const perm=await Notification.requestPermission();
+      if(perm!=='granted'){setErr('Notifications refusées. Autorisez-les pour le carnet dans les réglages du téléphone, puis réessayez.');setBusy(false);return}
+      const {key}=await Cloud.api('push/key');
+      const reg=await navigator.serviceWorker.ready;
+      const sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:u8(key)});
+      await Cloud.api('push/subscribe',sub.toJSON());
+      setOn(true);c.toast('Notifications activées sur ce téléphone');
+      Cloud.api('push/test',{endpoint:sub.endpoint}).catch(()=>{});
+    }catch(e){setErr(e&&typeof e.code==='string'?Cloud.msg(e):'Activation impossible sur cet appareil. Vérifiez la connexion et que le navigateur autorise les notifications.')}
+    setBusy(false);
+  };
+  const disable=async()=>{
+    setBusy(true);setErr('');
+    try{const reg=await navigator.serviceWorker.ready;const sub=await reg.pushManager.getSubscription();
+      if(sub){await Cloud.api('push/unsubscribe',{endpoint:sub.endpoint}).catch(()=>{});await sub.unsubscribe()}
+      setOn(false);c.toast('Notifications désactivées sur ce téléphone')}catch(e){setErr('Désactivation impossible.')}
+    setBusy(false);
+  };
+  const test=async()=>{try{const reg=await navigator.serviceWorker.ready;const sub=await reg.pushManager.getSubscription();await Cloud.api('push/test',{endpoint:sub&&sub.endpoint});c.toast('Notification de test envoyée')}catch(e){setErr(Cloud.msg(e))}};
+  const head=html`<div><b style=${{font:'700 15px var(--font-d)'}}>Notifications sur ce téléphone</b><div className="muted">Chaque matin : rendez-vous à prendre et rendez-vous à venir (J-7, J-2…), même sans ouvrir le carnet</div></div>`;
+  if(!CLOUD)return html`${head}<div className="note">Disponible avec un compte.</div>`;
+  if(IOS&&!STANDALONE)return html`${head}<div className="note">Sur iPhone, ajoutez d’abord le carnet à l’écran d’accueil : dans Safari, touchez <b>Partager</b> puis <b>Sur l’écran d’accueil</b>. Ouvrez ensuite le carnet depuis son icône et revenez ici.</div>`;
+  if(!ok)return html`${head}<div className="note">Ce navigateur ne reçoit pas les notifications. Ouvrez le carnet dans Chrome (Android) ou Safari (iPhone, depuis l’écran d’accueil).</div>`;
+  return html`<div className="swrow">${head}<${Switch} on=${on} set=${x=>busy?null:x?enable():disable()} label="Notifications sur ce téléphone"/></div>
+    ${on?html`<button type="button" className="link" style=${{alignSelf:'flex-start'}} onClick=${test}>Envoyer une notification de test</button>`:null}
+    ${err?html`<div className="chip bad" style=${{whiteSpace:'normal',borderRadius:12}}>${err}</div>`:null}<hr/>`;
+}
 function SettingsScreen(){
   const c=useC();const {fam}=c;
   const acc=c.db.accounts.find(a=>a.email===c.db.session.email)||{name:''};
@@ -1087,7 +1146,7 @@ function SettingsScreen(){
           <button className="row" onClick=${()=>c.go('theme')}><${Ico} e="🎨" k="s"/><div className="grow"><b>Thème de couleurs</b><small>${fam.theme.name||'Personnalisé'}</small></div><span className="go"><${Pic} e="›"/></span></button>
           <button className="row" onClick=${()=>c.go('access')}><${Ico} e="👪" k="i"/><div className="grow"><b>Membres et invitations</b><small>${fam.users.length} membre${fam.users.length>1?'s':''}${fam.invites.length?' · '+fam.invites.length+' invitation'+(fam.invites.length>1?'s':''):''}</small></div><span className="go"><${Pic} e="›"/></span></button>
           <button className="row" onClick=${()=>c.canAdmin?c.openSheet('famName'):c.toast('Réservé aux administrateurs')}><${Ico} e="🏠"/><div className="grow"><b>Nom de l’espace</b><small>${fam.name}</small></div><span className="go"><${Pic} e="›"/></span></button>
-          <button className="row" onClick=${()=>c.go('contacts')}><${Ico} e="🥼" k="i"/><div className="grow"><b>Annuaire</b><small>${(fam.contacts||[]).length} fiche${(fam.contacts||[]).length>1?'s':''} : médecins, vétérinaires, établissements</small></div><span className="go"><${Pic} e="›"/></span></button>
+          <button className="row" onClick=${()=>c.go('contacts')}><${Ico} e="🥼" k="i"/><div className="grow"><b>Annuaire</b><small>${(fam.contacts||[]).length?(fam.contacts||[]).length+' fiche'+((fam.contacts||[]).length>1?'s':''):'Aucune fiche'} : médecins, vétérinaires, établissements</small></div><span className="go"><${Pic} e="›"/></span></button>
         </div>
       <//>
       <${Section} title="Affichage">
@@ -1096,8 +1155,10 @@ function SettingsScreen(){
           <span className="muted">Auto suit le réglage de votre téléphone. Le mode sombre s’applique à votre appareil et garde les couleurs du thème de la famille, adaptées pour rester lisibles.</span>
         </div>
       <//>
-      <${Section} title="Notifications">
+      <${Section} title="Notifications et agenda">
+        ${CLOUD?html`<div className="card"><button className="row" onClick=${()=>c.openSheet('cal',{})}><${Ico} e="📅" k="i"/><div className="grow"><b>Agenda du téléphone</b><small>Rendez-vous et échéances dans l’agenda de l’iPhone, Google ou Outlook</small></div><span className="go"><${Pic} e="›"/></span></button></div>`:null}
         <div className="card pad form">
+          <${NotifCard}/>
           <div className="swrow"><div><b style=${{font:'700 15px var(--font-d)'}}>Rappels sur l’accueil</b><div className="muted">Affiche échéances et rendez-vous proches</div></div><${Switch} on=${fam.settings.showReminders} set=${x=>c.mut(d=>{F(d).settings.showReminders=x})} label="Rappels sur l’accueil"/></div>
           <hr/>
           <div><b style=${{font:'700 15px var(--font-d)'}}>Rappels de rendez-vous par défaut</b><div className="muted">Proposés pour tout nouveau soin, modifiables soin par soin</div></div>
@@ -1214,6 +1275,8 @@ function ProfileFormScreen({p:q}){
   const c=useC();const ex=q.pid?c.prof(q.pid):null;
   const type=ex?ex.type:q.type;const t=TYPES[type]||TYPES.adult;
   const i0=ex?ex.info:{};
+  const [docId,setDocId]=useState(i0.doctorId&&contactOf(c.fam,i0.doctorId)?i0.doctorId:'');
+  const [vetId,setVetId]=useState(i0.vetId&&contactOf(c.fam,i0.vetId)?i0.vetId:'');
   const [f,setF]=useState({name:ex?ex.name:'',birth:ex?(ex.birthApprox?'':ex.birth):'',sex:ex?ex.sex:'',species:i0.species!==undefined?i0.species:(t.species||''),breed:i0.breed||'',coat:i0.coat||'',size:i0.size||'',chip:i0.chip||'',vet:i0.vet||'',blood:i0.blood||'',allergies:i0.allergies||'',doctor:i0.doctor||'',neutered:!!i0.neutered,notes:ex?ex.notes:'',w:'',wd:c.today});
   const [unk,setUnk]=useState(ex?!!ex.birthApprox:false);
   const [approx,setApprox]=useState(()=>ex&&ex.birthApprox?String(Math.round(diffDays(c.today,ex.birth)/365.25)):'');
@@ -1221,14 +1284,20 @@ function ProfileFormScreen({p:q}){
   const [pre,setPre]=useState({});
   const [err,setErr]=useState('');
   const s=(k,v)=>setF({...f,[k]:v});
-  const dirty=useDirty([f,unk,approx,ex?null:av,pre]);
+  const dirty=useDirty([f,unk,approx,ex?null:av,pre,docId,vetId]);
+  const contacts=(c.fam.contacts||[]).slice().sort((a,b)=>a.name.localeCompare(b.name,'fr'));
+  /* Choix d'une fiche de l'annuaire (ou saisie libre), avec création sur place */
+  const proPick=(label,id,setId,txtKey,kind,ids)=>html`<div className="fld"><div className="sech"><span className="lbl">${label}</span><button type="button" className="link" onClick=${()=>c.openSheet('contact',{kind,onSaved:x=>setId(x)})}>＋ Nouvelle fiche</button></div>
+    <select id=${ids+'-id'} aria-label=${label+' : fiche de l’annuaire'} value=${id} onChange=${e=>setId(e.target.value)}><option value="">Aucune fiche (saisie libre)</option>${contacts.map(k=>html`<option key=${k.id} value=${k.id}>${k.name}${k.specialty?' · '+k.specialty:''}</option>`)}</select>
+    ${!id?html`<input id=${ids} type="text" aria-label=${label} placeholder="Nom (facultatif)" value=${f[txtKey]} onChange=${e=>s(txtKey,e.target.value)}/>`:null}</div>`;
   const presets=PRESETS[t.k]||[];
   const sexOpts=t.human?['Femme','Homme','Autre']:['Femelle','Mâle'];
   const save=()=>{
     if(!f.name.trim()){setErr('Indiquez un nom ou un prénom.');return}
     let birth=f.birth,birthApprox=false;
     if(unk){const n=parseFloat(String(approx).replace(',','.'));if(approx!==''&&n>=0){birth=addUnit(c.today,-Math.round(n*12),'m');birthApprox=true}else birth=''}
-    const info=t.human?{blood:f.blood,allergies:f.allergies,doctor:f.doctor}:{species:f.species||t.species||t.label,breed:f.breed,coat:f.coat,size:f.size,chip:f.chip,vet:f.vet,neutered:f.neutered};
+    const dk=contactOf(c.fam,docId),vk=contactOf(c.fam,vetId);
+    const info=t.human?{blood:f.blood,allergies:f.allergies,doctor:dk?dk.name:f.doctor,doctorId:dk?dk.id:null}:{species:f.species||t.species||t.label,breed:f.breed,coat:f.coat,size:f.size,chip:f.chip,vet:vk?vk.name:f.vet,vetId:vk?vk.id:null,neutered:f.neutered};
     c.mut(d=>{
       const fam=F(d);
       if(ex){Object.assign(P(d,ex.id),{name:f.name.trim(),birth,birthApprox,sex:f.sex,notes:f.notes,info,avatar:av})}
@@ -1262,8 +1331,8 @@ function ProfileFormScreen({p:q}){
         <div className="card pad form">
           ${t.human?html`<${Field} label="Groupe sanguin"><input id="pf-blood" type="text" value=${f.blood} onChange=${e=>s('blood',e.target.value)} placeholder="A+"/><//>
             <${Field} label="Allergies"><input id="pf-all" type="text" value=${f.allergies} onChange=${e=>s('allergies',e.target.value)}/><//>
-            <${Field} label="Médecin traitant"><input id="pf-doc" type="text" value=${f.doctor} onChange=${e=>s('doctor',e.target.value)}/><//>`
-          :html`<${Field} label="Vétérinaire"><input id="pf-vet" type="text" value=${f.vet} onChange=${e=>s('vet',e.target.value)}/><//>
+            ${proPick('Médecin traitant',docId,setDocId,'doctor','doctor','pf-doc')}`
+          :html`${proPick('Vétérinaire',vetId,setVetId,'vet','vet','pf-vet')}
             <${Field} label="N° de puce"><input id="pf-chip" type="text" value=${f.chip} onChange=${e=>s('chip',e.target.value)}/><//>
             <div className="swrow"><span>Stérilisé(e) / castré(e)</span><${Switch} on=${f.neutered} set=${v=>s('neutered',v)} label="Stérilisé ou castré"/></div>
             ${!ex?html`<${Field} label="Poids actuel (kg)"><input id="pf-w" type="number" step="0.1" min="0" inputMode="decimal" value=${f.w} onChange=${e=>s('w',e.target.value)}/><//>
@@ -1293,6 +1362,8 @@ function Sh({title,children,dirty,onSave,saveLabel}){
 function FormTop({title,sub,dirty,onSave,saveLabel}){
   const c=useC();const [ask,setAsk]=useState(false);
   const close=()=>{if(dirty&&!ask){setAsk(true);return}c.back()};
+  /* Bouton retour du téléphone : même confirmation que la croix */
+  useEffect(()=>{c.screenGuard.current=dirty&&!ask?()=>setAsk(true):null;return()=>{c.screenGuard.current=null}},[dirty,ask]);
   if(ask)return html`<div className="top"><div className="ask"><span>Abandonner les modifications ?</span><div className="btns"><${Btn} sm kind="soft" onClick=${()=>setAsk(false)}>Continuer<//><${Btn} sm kind="danger" onClick=${()=>c.back()}>Abandonner<//></div></div></div>`;
   return html`<div className="top"><button type="button" className="iconbtn" aria-label="Fermer" onClick=${close}><${Pic} e="✕"/></button><div className="tt"><h1>${title}</h1>${sub?html`<p>${sub}</p>`:null}</div><div className="tr">${dirty&&onSave?html`<${Btn} sm onClick=${onSave}>${saveLabel||'Enregistrer'}<//>`:null}</div></div>`;
 }
@@ -1338,19 +1409,19 @@ function RealSheet({p}){
     });
     const latest=[date,...care.realizations.filter(r=>r.id!==p.rid).map(r=>r.date)].sort().pop();
     c.closeSheet();
-    c.toast(care.freq?'Ajouté à l’historique. Prochaine échéance : '+fmt(addUnit(latest,care.freq.n,care.freq.unit)):'Ajouté à l’historique');
+    c.toast('Fait le '+fmt(date)+(care.freq?' · prochaine échéance le '+fmt(addUnit(latest,care.freq.n,care.freq.unit)):''));
   };
-  const remove=()=>{c.mut(d=>{const ca=P(d,p.pid).cares.find(x=>x.id===p.cid);ca.realizations=ca.realizations.filter(r=>r.id!==p.rid)});c.closeSheet();c.toast('Réalisation supprimée')};
-  return html`<${Sh} title=${ex?'Modifier la réalisation':'Nouvelle réalisation'} dirty=${dirty} onSave=${save}>
-    <span className="muted">${care.name} · ${pr.name}. Elle s’ajoute à l’historique sans effacer les précédentes.</span>
+  const remove=()=>{c.mut(d=>{const ca=P(d,p.pid).cares.find(x=>x.id===p.cid);ca.realizations=ca.realizations.filter(r=>r.id!==p.rid)});c.closeSheet();c.toast('Date supprimée de l’historique')};
+  return html`<${Sh} title=${ex?'Modifier « fait le »':'Fait le…'} dirty=${dirty} onSave=${save}>
+    <span className="muted">${care.name} · ${pr.name}. La date s’ajoute à l’historique, sans effacer les précédentes.</span>
     <div className="form">
-      <${Field} label="Date de réalisation"><input id="rs-date" type="date" value=${date} onChange=${e=>setDate(e.target.value)}/><//>
+      <${Field} label="Fait le"><input id="rs-date" type="date" value=${date} onChange=${e=>setDate(e.target.value)}/><//>
       <${Field} label="Professionnel ou établissement"><input id="rs-pro" type="text" value=${pro} onChange=${e=>setPro(e.target.value)}/><//>
       <${Field} label="Observations"><textarea id="rs-note" value=${note} onChange=${e=>setNote(e.target.value)}></textarea><//>
       <${Field} label="Documents" hint="Les noms de fichiers sont conservés. Le stockage réel viendra avec la version finale."><input id="rs-docs" type="file" multiple onChange=${e=>setDocs([...docs,...Array.from(e.target.files).map(f=>f.name)])}/><//>
       ${docs.length?html`<div className="chips">${docs.map((n,k)=>html`<button type="button" key=${k} className="chip pri" onClick=${()=>setDocs(docs.filter((_,j)=>j!==k))} aria-label=${'Retirer '+n}>📎 ${n} ✕</button>`)}</div>`:null}
-      <${Btn} block onClick=${save}>${ex?'Enregistrer':'Ajouter à l’historique'}<//>
-      ${ex?(del?html`<${Btn} kind="danger" block onClick=${remove}>Confirmer la suppression<//>`:html`<${Btn} kind="ghost" block onClick=${()=>setDel(true)}>Supprimer cette réalisation<//>`):null}
+      <${Btn} block onClick=${save}>Enregistrer<//>
+      ${ex?(del?html`<${Btn} kind="danger" block onClick=${remove}>Confirmer la suppression<//>`:html`<${Btn} kind="ghost" block onClick=${()=>setDel(true)}>Supprimer cette date<//>`):null}
     </div><//>`;
 }
 function ApptSheet({p}){
@@ -1396,15 +1467,28 @@ function ApptSheet({p}){
     <${Btn} block onClick=${save}>${ex?'Enregistrer':'Enregistrer le rendez-vous'}<//>
   </div><//>`;
 }
-function CalSheet({p}){
-  const c=useC();const pr=c.prof(p.pid);const a=pr.appointments.find(x=>x.id===p.aid);
-  const title=apptTitle(a,pr);const ics=icsFor(a,pr,title);
-  const copy=()=>{try{navigator.clipboard.writeText(ics).then(()=>c.toast('Fichier .ics copié'),()=>c.toast('Copie impossible dans ce contexte'))}catch(e){c.toast('Copie impossible dans ce contexte')}};
-  return html`<${Sh} title="Ajouter à mon agenda Apple">
-    <div className="card pad" style=${{background:'var(--bg)'}}><b style=${{font:'700 15px var(--font-d)'}}>${title} · ${pr.name}</b><div className="muted">${fmtLong(a.date)}${a.time?' à '+a.time:''}${a.place?' · '+a.place:''}</div></div>
-    <div className="note">Simulation. Un navigateur ne peut pas écrire dans l’agenda de l’iPhone : l’application finale utilisera l’agenda de l’appareil. Voici l’événement tel qu’il serait créé, alertes comprises.</div>
-    <pre className="ics">${ics}</pre>
-    <div className="btns"><${Btn} onClick=${()=>{c.mut(d=>{P(d,p.pid).appointments.find(x=>x.id===p.aid).inCalendar=true});c.closeSheet();c.toast('Marqué comme ajouté à l’agenda (simulation)')}}>${a.inCalendar?'Déjà marqué dans l’agenda':'Ajouter (simulation)'}<//><${Btn} kind="soft" onClick=${copy}>Copier le .ics<//></div><//>`;
+/* Abonnement à l'agenda du téléphone : l'agenda suit tout seul les rendez-vous et échéances du carnet */
+function CalSheet(){
+  const c=useC();
+  const [tok,setTok]=useState('');const [err,setErr]=useState('');const [renew,setRenew]=useState(false);
+  useEffect(()=>{if(CLOUD)Cloud.api('calendar/link',{}).then(r=>setTok(r.token),e=>setErr(Cloud.msg(e)))},[]);
+  if(!CLOUD)return html`<${Sh} title="Agenda du téléphone"><div className="note">Disponible avec un compte : l’agenda du téléphone suit alors tout seul les rendez-vous et les échéances du carnet.</div><//>`;
+  const https=tok?location.origin+'/cal/'+tok+'.ics':'';
+  const webcal=https.replace(/^https?:/,'webcal:');
+  const copy=()=>{try{navigator.clipboard.writeText(https).then(()=>c.toast('Lien copié'),()=>c.toast('Copie impossible dans ce contexte'))}catch(e){c.toast('Copie impossible dans ce contexte')}};
+  const doRenew=()=>Cloud.api('calendar/link',{renew:true}).then(r=>{setTok(r.token);setRenew(false);c.toast('Nouveau lien créé : abonnez-vous de nouveau')},e=>setErr(Cloud.msg(e)));
+  return html`<${Sh} title="Agenda du téléphone">
+    <span className="muted">Rendez-vous (avec leurs rappels) et échéances des soins de toute la famille, mis à jour automatiquement dans votre agenda.</span>
+    ${err?html`<div className="chip bad" style=${{whiteSpace:'normal',borderRadius:12}}>${err}</div>`:null}
+    ${tok?html`<div className="form">
+      <a className="btn block" href=${webcal}><${Pic} e="📅"/> S’abonner (iPhone, iPad, Mac, Outlook)</a>
+      <a className="btn soft block" href=${'https://calendar.google.com/calendar/r?cid='+encodeURIComponent(webcal)} target="_blank" rel="noopener noreferrer">Ajouter à Google Agenda</a>
+      <${Btn} kind="ghost" block onClick=${copy}>Copier le lien<//>
+      <div className="note">L’agenda se met à jour tout seul, en général en quelques heures (Google Agenda : jusqu’à une journée). Ce lien est personnel : toute personne qui le connaît voit les rendez-vous du carnet.</div>
+      ${renew?html`<div className="note">L’ancien lien cessera de fonctionner : il faudra vous abonner de nouveau sur vos appareils.</div><div className="btns"><${Btn} sm kind="danger" onClick=${doRenew}>Changer le lien<//><${Btn} sm kind="ghost" onClick=${()=>setRenew(false)}>Annuler<//></div>`
+        :html`<button type="button" className="link" style=${{alignSelf:'flex-start'}} onClick=${()=>setRenew(true)}>Lien partagé par erreur ? Changer le lien</button>`}
+    </div>`:err?null:html`<span className="muted">Préparation du lien…</span>`}
+  <//>`;
 }
 function WeightSheet({p}){
   const c=useC();const pr=c.prof(p.pid);const ex=p.wid?pr.weights.find(w=>w.id===p.wid):null;
@@ -1592,6 +1676,7 @@ function FreqSheet({p}){
 const telHref=t=>'tel:'+String(t).replace(/[^0-9+]/g,'');
 const mapHref=a=>'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(a);
 const contactCares=(fam,id)=>{const r=[];fam.profiles.forEach(p=>p.cares.forEach(x=>{if(x.proId===id)r.push({p,care:x})}));return r};
+const contactProfiles=(fam,id)=>fam.profiles.filter(p=>!p.archived&&((p.info||{}).doctorId===id||(p.info||{}).vetId===id));
 function ContactsScreen(){
   const c=useC();const [kind,setKind]=useState('all');
   const list=(c.fam.contacts||[]).filter(k=>kind==='all'||k.kind===kind).slice().sort((a,b)=>a.name.localeCompare(b.name,'fr'));
@@ -1608,7 +1693,7 @@ function ContactScreen({p:q}){
   if(!k)return html`<${Gone}/>`;
   const cares=contactCares(c.fam,k.id);
   const ask=()=>c.openSheet('confirm',{title:'Supprimer la fiche « '+k.name+' » ?',text:cares.length?'Les '+cares.length+' soin(s) liés gardent le nom « '+k.name+' » en texte libre.':'Cette fiche n’est liée à aucun soin.',label:'Supprimer la fiche',danger:true,
-    run:()=>{c.mut(d=>{const f=F(d);f.profiles.forEach(p=>p.cares.forEach(x=>{if(x.proId===k.id){x.proId=null;x.pro=k.name}}));f.contacts=(f.contacts||[]).filter(x=>x.id!==k.id)});c.back();c.toast('Fiche supprimée')}});
+    run:()=>{c.mut(d=>{const f=F(d);f.profiles.forEach(p=>{p.cares.forEach(x=>{if(x.proId===k.id){x.proId=null;x.pro=k.name}});const i=p.info||{};if(i.doctorId===k.id)i.doctorId=null;if(i.vetId===k.id)i.vetId=null});f.contacts=(f.contacts||[]).filter(x=>x.id!==k.id)});c.back();c.toast('Fiche supprimée')}});
   return html`<${Top} back=${true} lead=${html`<${Ico} e=${KINDS[k.kind][1]} k=${k.kind==='vet'?'s':k.kind==='place'?'w':'i'} s=${44}/>`} title=${k.name} sub=${k.specialty||KINDS[k.kind][0]} right=${c.canEdit?html`<button className="iconbtn" aria-label="Modifier la fiche" onClick=${()=>c.openSheet('contact',{id:k.id})}><${Pic} e="✏️"/></button>`:null}/>
     <div className="scroll">
       ${k.phone||k.email||k.address?html`<div className="btns">
@@ -1624,6 +1709,7 @@ function ContactScreen({p:q}){
         ${k.address?html`<dt>Adresse</dt><dd>${k.address}</dd>`:null}
         ${k.notes?html`<dt>Notes</dt><dd>${k.notes}</dd>`:null}
       </dl></div>
+      ${contactProfiles(c.fam,k.id).length?html`<${Section} title="Suit"><div className="card">${contactProfiles(c.fam,k.id).map(p=>html`<button key=${p.id} className="row" onClick=${()=>c.go('book',{pid:p.id})}><${Avatar} p=${p} size=${42}/><div className="grow"><b>${p.name}</b><small>${TYPES[p.type].human?'Médecin traitant':'Vétérinaire'}</small></div><span className="go"><${Pic} e="›"/></span></button>`)}</div><//>`:null}
       <${Section} title=${'Soins suivis ('+cares.length+')'}>
         <div className="card">${cares.length?cares.map(({p,care})=>html`<button key=${care.id} className="row" onClick=${()=>c.go('care',{pid:p.id,cid:care.id})}><${CatIco} cat=${catOf(c.fam,care.category)}/><div className="grow"><b>${care.name}</b><small>${p.name}</small></div><span className="go"><${Pic} e="›"/></span></button>`)
           :html`<${Empty} e="🔗" title="Aucun soin lié" text="Choisissez cette fiche dans « Professionnel ou établissement » en modifiant un soin."/>`}</div>
@@ -1646,7 +1732,7 @@ function ContactSheet({p}){
     const body={kind:f.kind,name:f.name.trim(),specialty:f.specialty.trim(),phone:f.phone.trim(),email:f.email.trim(),address:f.address.trim(),notes:f.notes.trim()};
     const id=ex?ex.id:'k-'+uid();
     c.mut(d=>{const fam=F(d);fam.contacts=fam.contacts||[];
-      if(ex){Object.assign(fam.contacts.find(x=>x.id===ex.id),body);fam.profiles.forEach(pp=>pp.cares.forEach(x=>{if(x.proId===ex.id)x.pro=body.name}))}
+      if(ex){Object.assign(fam.contacts.find(x=>x.id===ex.id),body);fam.profiles.forEach(pp=>{pp.cares.forEach(x=>{if(x.proId===ex.id)x.pro=body.name});const i=pp.info||{};if(i.doctorId===ex.id)i.doctor=body.name;if(i.vetId===ex.id)i.vet=body.name})}
       else fam.contacts.push({id,...body})});
     c.closeSheet();c.toast(ex?'Fiche modifiée':'Fiche ajoutée à l’annuaire');
     if(p.onSaved)p.onSaved(id);
@@ -1699,7 +1785,7 @@ function CareEditSheet({p}){
     c.closeSheet();c.toast('« '+care.name+' » supprimé');
   };
   return html`<${Sh} title="Modifier le soin" dirty=${dirty} onSave=${save}><div className="form">
-    <button type="button" className="row act cehist" onClick=${()=>{c.closeSheet();c.go('care',{pid:p.pid,cid:care.id})}}><${CatIco} cat=${catOf(c.fam,care.category)}/><div className="grow"><b>${pr.name}</b><small>${care.realizations.length?care.realizations.length+' réalisation'+(care.realizations.length>1?'s':'')+' · dernière le '+fmt(i.last):'Aucune réalisation'}</small><span className="tapedit">Historique et rendez-vous</span></div><span className="go"><${Pic} e="›"/></span></button>
+    <button type="button" className="row act cehist" onClick=${()=>{c.closeSheet();c.go('care',{pid:p.pid,cid:care.id})}}><${CatIco} cat=${catOf(c.fam,care.category)}/><div className="grow"><b>${pr.name}</b><small>${care.realizations.length?'Fait '+care.realizations.length+' fois · dernière fois le '+fmt(i.last):'Jamais fait'}</small><span className="tapedit">Historique et rendez-vous</span></div><span className="go"><${Pic} e="›"/></span></button>
     <${Field} label="Nom du soin"><input id="ce-name" type="text" value=${name} onChange=${e=>setName(e.target.value)}/><//>
     <${Field} label="Type de soin"><select id="ce-cat" value=${cat} onChange=${e=>setCat(e.target.value)}>${cats.some(x=>x.id===cat)?null:html`<option value=${cat}>${catOf(c.fam,cat).label}</option>`}${cats.map(x=>html`<option key=${x.id} value=${x.id}>${x.label}</option>`)}</select><//>
     <div className="fld"><div className="sech"><span className="lbl">Professionnel ou établissement</span><button type="button" className="link" onClick=${()=>c.openSheet('contact',{kind:TYPES[pr.type].human?'doctor':'vet',back:{n:'careEdit',p:{pid:p.pid,cid:p.cid,draft:{name,cat,pro,notes,v}}}})}>＋ Nouvelle fiche</button></div>
@@ -1710,7 +1796,7 @@ function CareEditSheet({p}){
     <${Field} label="Observations"><textarea id="ce-notes" value=${notes} onChange=${e=>setNotes(e.target.value)}></textarea><//>
     ${err?html`<div className="chip bad" style=${{whiteSpace:'normal',borderRadius:12}}>${err}</div>`:null}
     <${Btn} block onClick=${save}>Enregistrer<//>
-    ${del?html`<div className="note">« ${care.name} » et ${care.realizations.length?'ses '+care.realizations.length+' réalisation(s)':'ses rendez-vous'} seront définitivement supprimés.</div><${Btn} kind="danger" block onClick=${remove}>Confirmer la suppression<//><${Btn} kind="ghost" block onClick=${()=>setDel(false)}>Annuler<//>`
+    ${del?html`<div className="note">« ${care.name} » et ${care.realizations.length?'son historique ('+care.realizations.length+' fois)':'ses rendez-vous'} seront définitivement supprimés.</div><${Btn} kind="danger" block onClick=${remove}>Confirmer la suppression<//><${Btn} kind="ghost" block onClick=${()=>setDel(false)}>Annuler<//>`
       :html`<${Btn} kind="danger" block onClick=${()=>setDel(true)}>Supprimer ce soin<//>`}
   </div><//>`;
 }
@@ -1730,7 +1816,7 @@ function Onboarding(){
         <div className="ob-step"><${Ico} e="🔔" k="w" s=${44}/><div><b>1. À prévoir</b><span className="muted">Rappel au délai choisi pour chaque soin</span></div></div>
         <div className="ob-step"><${Ico} e="📅" k="i" s=${44}/><div><b>2. Rendez-vous noté</b><span className="muted">Vous saisissez la date et l’heure</span></div></div>
         <div className="ob-step"><${Ico} e="⏰" k="g" s=${44}/><div><b>3. Rappels J-7 et J-2</b><span className="muted">Modifiables ou désactivables</span></div></div></div>`},
-    {t:'Tout se fait en un geste',x:'Touchez le bouton « Fait » quand un soin est réalisé : la prochaine échéance se calcule toute seule. Les couleurs et le mode sombre se règlent dans les réglages.',
+    {t:'Tout se fait en un geste',x:'Touchez « Fait » dès qu’un soin est fait : la prochaine échéance se calcule toute seule. Les couleurs et le mode sombre se règlent dans les réglages.',
       art:html`<div className="ob-art col"><div className="card"><div className="row"><${Ico} e="🦷" t="#3FA39C"/><div className="grow"><b>Dentiste</b><small>Prochain : dans 1 an</small></div><span className="donebtn"><${Pic} e="✓"/></span></div></div><div className="chips" style=${{justifyContent:'center'}}><${Chip} k="ok"><${Pic} e="✅"/> Prochaine échéance calculée<//></div></div>`}
   ];
   const st=steps[i],last=i===steps.length-1;
@@ -1753,6 +1839,7 @@ function App(){
   const [flash,setFlash]=useState('');
   const sheetDirty=useRef(false);
   const [askClose,setAskClose]=useState(false);
+  const screenGuard=useRef(null);
   const tm=useRef(0);
   useEffect(()=>{try{if(CLOUD)localStorage.setItem(PKEY,JSON.stringify({mode:db.mode,modeSet:db.modeSet,seen:db.seen}));else localStorage.setItem(KEY,JSON.stringify(db))}catch(e){}},[db]);
   useEffect(()=>{const a=()=>setOnline(true),b=()=>setOnline(false);window.addEventListener('online',a);window.addEventListener('offline',b);return()=>{window.removeEventListener('online',a);window.removeEventListener('offline',b)}},[]);
@@ -1794,7 +1881,7 @@ function App(){
       mut(d=>{const pp=P(d,pid),ca=pp.cares.find(x=>x.id===cid);ca.realizations.push({id:uid(),date:today,note:'',pro:ca.pro||'',docs:[]});ca.pending=false;
         const ap=pp.appointments.filter(a=>a.careId===cid&&a.status==='planned').sort((a,b)=>a.date<b.date?-1:1)[0];if(ap)ap.status='done'});
       setFlash(cid);setTimeout(()=>setFlash(''),1500);
-      toast(care.name+' enregistré'+(care.freq?' · prochaine échéance le '+fmt(addUnit(latest,care.freq.n,care.freq.unit)):''),()=>setDb(snap));
+      toast(care.name+' : fait aujourd’hui'+(care.freq?' · prochaine échéance le '+fmt(addUnit(latest,care.freq.n,care.freq.unit)):''),()=>setDb(snap));
     },mode,wantDark,setMode:m=>mut(d=>{d.mode=m;d.modeSet=true}),canEdit:role!=='viewer',canAdmin:role==='admin',mut,toast,
     prof:pid=>fam?fam.profiles.find(x=>x.id===pid):null,
     go:(n,p)=>setStack(s=>[...s,{n,p:p||{}}]),
@@ -1803,9 +1890,28 @@ function App(){
     openSheet:(n,p)=>{sheetDirty.current=false;setAskClose(false);setSheet({n,p:p||{},k:uid()})},
     closeSheet:()=>{sheetDirty.current=false;setAskClose(false);setSheet(null)},
     requestClose:()=>{if(sheetDirty.current){setAskClose(true);return}sheetDirty.current=false;setAskClose(false);setSheet(null)},
-    sheetDirty,askClose,setAskClose,
+    sheetDirty,askClose,setAskClose,screenGuard,
     setPending:(pid,cid,v)=>{mut(d=>{P(d,pid).cares.find(x=>x.id===cid).pending=v});toast(v?'Noté : rendez-vous à fixer':'Rappel remis à plus tard')}};
   useEffect(()=>{if(!sheet)return;const f=e=>{if(e.key==='Escape')ctx.requestClose()};window.addEventListener('keydown',f);return()=>window.removeEventListener('keydown',f)},[sheet]);
+  /* Bouton retour d'Android et du navigateur : une entrée d'historique « piège » tant qu'il y a un écran ou une fenêtre à fermer.
+     Retour = fermer la fenêtre (avec confirmation si modifiée), puis l'écran, puis revenir à l'accueil, puis quitter. */
+  const rootExtra=fam&&stack.length===1&&!['home','auth','createFamily'].includes(stack[0].n)?1:0;
+  const depth=(stack.length-1)+rootExtra+(sheet?1:0);
+  const navRef=useRef({armed:false,ignore:0,depth:0});
+  navRef.current.depth=depth;
+  const backStep=useRef(null);
+  backStep.current=()=>{
+    if(sheet){ctx.requestClose();return}
+    if(screenGuard.current){screenGuard.current();return}
+    if(stack.length>1){setStack(s=>s.length>1?s.slice(0,-1):s);return}
+    if(rootExtra)ctx.tab('home');
+  };
+  const syncNav=()=>{const n=navRef.current;
+    if(n.depth>0&&!n.armed){try{history.pushState({carnet:1},'');n.armed=true}catch(e){}}
+    else if(n.depth===0&&n.armed){n.armed=false;n.ignore++;try{history.back()}catch(e){n.ignore--}}};
+  useEffect(()=>{const t=setTimeout(syncNav,60);return()=>clearTimeout(t)},[depth]);
+  useEffect(()=>{const onPop=()=>{const n=navRef.current;if(n.ignore>0){n.ignore--;return}n.armed=false;backStep.current();setTimeout(syncNav,80)};
+    window.addEventListener('popstate',onPop);return()=>window.removeEventListener('popstate',onPop)},[]);
   const top=stack[stack.length-1];
   const Scr=SCREENS[top.n];
   const Sh2=sheet?SHEETS[sheet.n]:null;

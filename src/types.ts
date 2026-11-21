@@ -10,6 +10,8 @@ export interface Env {
   /** Envoi des e-mails de réinitialisation via Resend (facultatif) */
   RESEND_API_KEY?: string;
   MAIL_FROM?: string;
+  /** Clé VAPID des notifications (JWK privée P-256), générée par la CI */
+  VAPID_JWK?: string;
 }
 
 export type Role = 'admin' | 'editor' | 'viewer';

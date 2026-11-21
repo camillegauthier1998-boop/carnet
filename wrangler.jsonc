@@ -8,7 +8,8 @@
 		"binding": "ASSETS",
 		"not_found_handling": "single-page-application",
 		"run_worker_first": [
-			"/api/*"
+			"/api/*",
+			"/cal/*"
 		]
 	},
 	"d1_databases": [
@@ -18,6 +19,12 @@
 			"database_id": "7c4fba3e-f023-4c9d-b309-7d52d33e72cd"
 		}
 	],
+	// Rappels envoyés chaque matin par notification (5 h 30 UTC : 6 h 30 l'hiver, 7 h 30 l'été à Paris)
+	"triggers": {
+		"crons": [
+			"30 5 * * *"
+		]
+	},
 	"vars": {
 		// Itérations PBKDF2 du hachage des mots de passe (100 000 maximum sur Workers).
 		// Les anciens hachages gardent leur valeur et sont recalculés à la connexion suivante.
