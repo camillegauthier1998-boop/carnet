@@ -285,3 +285,5 @@ a.btn{text-decoration:none}
 /* Médecin / vétérinaire sur la fiche d'un membre */
 .linkrow{display:flex;flex-direction:column;align-items:flex-start;gap:1px;border:0;background:none;padding:0;text-align:left;color:inherit;font:inherit;cursor:pointer;min-width:0}
 .linkrow b{font:700 15px var(--font-d)}
+.preset{display:flex;flex-direction:column;gap:10px}
+.preset+.preset{border-top:1px solid var(--line);padding-top:12px}
