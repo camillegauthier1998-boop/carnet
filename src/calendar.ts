@@ -3,7 +3,7 @@
  * servi à une adresse secrète propre à chaque compte (/cal/<jeton>.ics).
  * Contient les rendez-vous (avec leurs rappels) et les échéances des soins sans rendez-vous.
  */
-import { addUnit, apptTitle, careInfo, diffDays, type Profile } from './reminders';
+import { addUnit, apptGroups, apptTitle, careInfo, diffDays, type Profile } from './reminders';
 
 /** Échappement des valeurs texte (RFC 5545 §3.3.11). */
 export const icsText = (s: string) => s.replace(/\\/g, '\\\\').replace(/;/g, '\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
@@ -39,14 +39,13 @@ export function buildCalendar(familyName: string, profiles: Profile[], today: st
   const alarm = (days: number, text: string) => {
     L.push('BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${icsText(text)}`, `TRIGGER:${days > 0 ? `-P${days}D` : 'PT0S'}`, 'END:VALARM');
   };
-  for (const p of profiles) {
-    if (p.archived) continue;
-    const appts = p.appointments ?? [];
-    for (const a of appts) {
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(a.date)) continue;
-      if (a.status !== 'planned' && !(a.status === 'done' && diffDays(today, a.date) <= PAST_DAYS)) continue;
+  // Rendez-vous (un seul événement pour un rendez-vous commun à plusieurs membres)
+  const keep = (a: { date: string; status: string }) => /^\d{4}-\d{2}-\d{2}$/.test(a.date)
+    && (a.status === 'planned' || (a.status === 'done' && diffDays(today, a.date) <= PAST_DAYS));
+  for (const { a, p, names } of apptGroups(profiles, keep)) {
       const title = apptTitle(a, p);
-      L.push('BEGIN:VEVENT', `UID:appt-${a.id}@carnet`, `DTSTAMP:${dtstamp}`, `SUMMARY:${icsText(`${title} · ${p.name}`)}`);
+      const who = names.join(', ');
+      L.push('BEGIN:VEVENT', `UID:${a.groupId ? `appt-g-${a.groupId}` : `appt-${a.id}`}@carnet`, `DTSTAMP:${dtstamp}`, `SUMMARY:${icsText(`${title} · ${who}`)}`);
       if (a.time && /^\d{2}:\d{2}$/.test(a.time)) {
         const [h, m] = a.time.split(':').map(Number);
         const end = h >= 23 ? `${d8(addUnit(a.date, 1, 'd'))}T00${pad(m)}00` : `${d8(a.date)}T${pad(h + 1)}${pad(m)}00`;
@@ -58,9 +57,13 @@ export function buildCalendar(familyName: string, profiles: Profile[], today: st
       if (a.place) L.push(`LOCATION:${icsText(a.place)}`);
       if (a.note) L.push(`DESCRIPTION:${icsText(a.note)}`);
       if (a.status === 'done') L.push('STATUS:CONFIRMED');
-      if (a.status === 'planned') for (const r of a.reminders ?? []) if (r.on) alarm(r.days, `${title} · ${p.name}`);
+      if (a.status === 'planned') for (const r of a.reminders ?? []) if (r.on) alarm(r.days, `${title} · ${who}`);
       L.push('END:VEVENT');
-    }
+  }
+  // Échéances des soins sans rendez-vous
+  for (const p of profiles) {
+    if (p.archived) continue;
+    const appts = p.appointments ?? [];
     for (const c of p.cares ?? []) {
       const i = careInfo(c, appts, today);
       if (!i.due || !['ok', 'remind', 'pending', 'overdue'].includes(i.status)) continue;
