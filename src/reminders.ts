@@ -12,6 +12,8 @@ export interface Care {
 export interface Appointment {
   id: string; careId?: string | null; title?: string; date: string; time?: string; place?: string; note?: string;
   status: string; reminders?: { days: number; on: boolean }[];
+  /** Rendez-vous commun à plusieurs membres : même groupId sur chacun */
+  groupId?: string | null;
 }
 export interface Profile { id: string; name: string; archived?: boolean; cares?: Care[]; appointments?: Appointment[] }
 
@@ -69,6 +71,26 @@ export const apptTitle = (a: Appointment, p: Profile) => a.title || p.cares?.fin
 
 export interface Reminder { key: string; title: string; body: string; url: string }
 
+export const andJoin = (l: string[]) => (l.length > 1 ? `${l.slice(0, -1).join(', ')} et ${l[l.length - 1]}` : l[0] ?? '');
+
+/** Rendez-vous à venir regroupés : un élément par rendez-vous commun, avec tous les membres concernés. */
+export function apptGroups(profiles: Profile[], keep: (a: Appointment) => boolean) {
+  const out: { a: Appointment; p: Profile; names: string[]; ids: string[] }[] = [];
+  const seen = new Map<string, (typeof out)[number]>();
+  for (const p of profiles) {
+    if (p.archived) continue;
+    for (const a of p.appointments ?? []) {
+      if (!keep(a)) continue;
+      const g = a.groupId ? seen.get(a.groupId) : undefined;
+      if (g) { g.names.push(p.name); g.ids.push(a.id); continue; }
+      const item = { a, p, names: [p.name], ids: [a.id] };
+      if (a.groupId) seen.set(a.groupId, item);
+      out.push(item);
+    }
+  }
+  return out;
+}
+
 /** Une échéance dépassée n'est signalée que si elle date de moins d'une semaine (pas d'avalanche à la mise en service). */
 const OVERDUE_WINDOW = 7;
 
@@ -96,20 +118,20 @@ export function remindersFor(profiles: Profile[], today: string): Reminder[] {
         });
       }
     }
-    for (const a of appts) {
-      if (a.status !== 'planned' || a.date < today) continue;
+  }
+  // Rendez-vous : un seul message pour un rendez-vous commun à plusieurs membres
+  for (const { a, p, names } of apptGroups(profiles, (x) => x.status === 'planned' && x.date >= today)) {
       // Plusieurs rappels le même jour (rendez-vous noté tard) : un seul message, le plus proche
       const due = (a.reminders ?? []).filter((r) => r.on && addUnit(a.date, -r.days, 'd') <= today).sort((x, y) => x.days - y.days);
       if (!due.length) continue;
       const n = diffDays(a.date, today);
       const when = n === 0 ? 'aujourd’hui' : n === 1 ? 'demain' : `dans ${n} jours`;
       out.push({
-        key: `appt:${p.id}:${a.id}:${a.date}:${due[0].days}`,
+        key: a.groupId ? `appt:g:${a.groupId}:${a.date}:${due[0].days}` : `appt:${p.id}:${a.id}:${a.date}:${due[0].days}`,
         title: `Rendez-vous ${when}`,
-        body: `${apptTitle(a, p)} pour ${p.name}${n > 1 ? ` le ${frDate(a.date, false)}` : ''}${a.time ? ` à ${a.time}` : ''}${a.place ? ` · ${a.place}` : ''}.`,
+        body: `${apptTitle(a, p)} pour ${andJoin(names)}${n > 1 ? ` le ${frDate(a.date, false)}` : ''}${a.time ? ` à ${a.time}` : ''}${a.place ? ` · ${a.place}` : ''}.`,
         url: '/',
       });
-    }
   }
   return out;
 }

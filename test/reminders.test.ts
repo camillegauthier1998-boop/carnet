@@ -58,3 +58,16 @@ describe('rappels du matin', () => {
     expect(remindersFor([prof()], '2027-01-10')).toEqual([]);
   });
 });
+
+describe('rendez-vous commun à plusieurs membres', () => {
+  const appt = (id: string) => ({ id, title: 'Vermifuge', date: '2026-12-01', status: 'planned', groupId: 'g1', reminders: [{ days: 7, on: true }] });
+  const horses: Profile[] = [
+    { id: 'h1', name: 'Hercule', cares: [], appointments: [appt('a1')] },
+    { id: 'h2', name: 'Tornade', cares: [], appointments: [appt('a2')] },
+    { id: 'h3', name: 'Éclair', cares: [], appointments: [appt('a3')] },
+  ];
+  it('un seul rappel, qui nomme tous les membres', () => {
+    const r = remindersFor(horses, '2026-11-24');
+    expect(r).toEqual([{ key: 'appt:g:g1:2026-12-01:7', title: 'Rendez-vous dans 7 jours', body: 'Vermifuge pour Hercule, Tornade et Éclair le 1er décembre.', url: '/' }]);
+  });
+});

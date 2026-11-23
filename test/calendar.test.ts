@@ -55,3 +55,13 @@ describe('agenda d’une famille', () => {
     expect(unfolded).not.toContain('Caché');
   });
 });
+
+describe('rendez-vous commun dans l’agenda', () => {
+  it('un seul événement pour tous les membres', () => {
+    const a = (id: string) => ({ id, title: 'Vermifuge', date: '2026-12-01', status: 'planned', groupId: 'g1', reminders: [] });
+    const ics = buildCalendar('F', [{ id: 'h1', name: 'Hercule', appointments: [a('a1')] }, { id: 'h2', name: 'Tornade', appointments: [a('a2')] }], '2026-11-21').replace(/\r\n /g, '');
+    expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(1);
+    expect(ics).toContain('UID:appt-g-g1@carnet');
+    expect(ics).toContain('SUMMARY:Vermifuge · Hercule\\, Tornade');
+  });
+});

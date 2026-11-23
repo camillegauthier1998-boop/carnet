@@ -287,3 +287,8 @@ a.btn{text-decoration:none}
 .linkrow b{font:700 15px var(--font-d)}
 .preset{display:flex;flex-direction:column;gap:10px}
 .preset+.preset{border-top:1px solid var(--line);padding-top:12px}
+/* Membres d'un rendez-vous */
+.mchips{display:flex;flex-wrap:wrap;gap:8px}
+.mchip{display:inline-flex;align-items:center;gap:8px;padding:5px 12px 5px 5px;border-radius:99px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);font:700 14px var(--font-d);min-height:40px}
+.mchip.on{border-color:var(--primary);background:var(--psoft);color:var(--pink)}
+.mchip .av{font-size:15px}
